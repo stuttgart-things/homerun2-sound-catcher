@@ -33,7 +33,7 @@ func (m *Dagger) Test(
 	src *dagger.Directory,
 	// +optional
 	// renovate: python
-	// +default="3.15-slim"
+	// +default="3.14-slim"
 	pythonVersion string,
 ) (string, error) {
 	return dag.Python().Test(ctx, src, dagger.PythonTestOpts{

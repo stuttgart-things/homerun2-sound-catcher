@@ -66,7 +66,7 @@ jobs:
         if: steps.version-after.outputs.new_release == 'true'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # amd64 for the LattePanda, arm64 so a Pi can run it too
+      # amd64 for the cluster and the LattePanda, arm64 so a Pi can run it too
       - name: Set up QEMU
         if: steps.version-after.outputs.new_release == 'true'
         uses: docker/setup-qemu-action@v4
@@ -91,6 +91,24 @@ jobs:
             --push \
             .
 
+      - name: Push kustomize base
+        if: steps.version-after.outputs.new_release == 'true'
+        uses: dagger/dagger-for-github@v8.4.1
+        with:
+          version: "0.21.10"
+          verb: call
+          module: github.com/stuttgart-things/dagger/kcl@v0.86.0
+          args: >-
+            push-kustomize-base
+            --source ./kcl
+            --parameters-file ./tests/kcl-deploy-profile.yaml
+            --address ghcr.io/stuttgart-things/homerun2-sound-catcher-kustomize
+            --tag ${{ steps.version-after.outputs.version }}
+            --user env:GITHUB_USER
+            --password env:GITHUB_TOKEN
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update release notes
         if: steps.version-after.outputs.new_release == 'true'
@@ -101,6 +119,7 @@ jobs:
           EXISTING_BODY=$(gh release view "$VERSION" --json body --jq '.body')
           ARTIFACTS="### Artifacts\n\n| Artifact | Reference |\n|----------|-----------|"
           ARTIFACTS="${ARTIFACTS}\n| **Image** | \`ghcr.io/${{ github.repository }}:${VERSION}\` (linux/amd64, linux/arm64) |"
+          ARTIFACTS="${ARTIFACTS}\n| **Kustomize** | \`ghcr.io/stuttgart-things/homerun2-sound-catcher-kustomize:${VERSION}\` |"
           gh release edit "$VERSION" --notes "$(printf '%s\n\n%b' "$EXISTING_BODY" "$ARTIFACTS")"
 
       - name: Release summary
@@ -111,6 +130,7 @@ jobs:
             echo "| Artifact | Reference |" >> $GITHUB_STEP_SUMMARY
             echo "|----------|-----------|" >> $GITHUB_STEP_SUMMARY
             echo "| **Image** | \`ghcr.io/${{ github.repository }}:$VERSION\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Kustomize** | \`ghcr.io/stuttgart-things/homerun2-sound-catcher-kustomize:$VERSION\` |" >> $GITHUB_STEP_SUMMARY
           else
             echo "## No Release" >> $GITHUB_STEP_SUMMARY
             echo "No new version created by semantic-release." >> $GITHUB_STEP_SUMMARY

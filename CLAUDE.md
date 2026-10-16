@@ -12,7 +12,8 @@ homerun2-sound-catcher — Python microservice that consumes messages from Redis
 - **Playback**: external player (mpv / ffplay / pw-play) on one queue thread
 - **Web**: FastAPI + SSE (sse-starlette), a single static page with vanilla JS
 - **CI**: Dagger module `stuttgart-things/dagger/python`, GitHub Actions, Taskfile
-- **Infra**: semantic-release, renovate
+- **Deploy**: natively under systemd (speaker), KCL manifests for Kubernetes (browser only)
+- **Infra**: semantic-release, renovate (Python held below 3.15 for onnxruntime)
 
 ## Git Workflow
 
@@ -43,6 +44,8 @@ Branch-per-issue with PR and merge, as in the sibling repos:
 - `src/sound_catcher/web/static/index.html` — the player page
 - `docs/concept.md` — design and API; `docs/lattepanda.md` — native install
 - `deploy/` — systemd user units, env template, Bluetooth reconnect timer
+- `kcl/` — browser-only Kubernetes deployment (one replica, Recreate); `tests/test_kcl_manifests.py` renders it when `kcl-lib` is installed
+- `docs/kubernetes.md` — cluster deployment, SSE through the gateway
 
 ## Testing
 

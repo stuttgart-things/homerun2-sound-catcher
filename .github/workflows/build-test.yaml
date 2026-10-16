@@ -25,7 +25,7 @@ jobs:
       matrix:
         python-version:
           - "3.11-slim"
-          - "3.15-slim" # renovate: python
+          - "3.14-slim" # renovate: python
     uses: stuttgart-things/github-workflow-templates/.github/workflows/call-python-validation.yaml@main
     with:
       runs-on: dagger-labda

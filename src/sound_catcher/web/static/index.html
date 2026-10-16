@@ -198,16 +198,36 @@
     entries.unshift(entry);
     entries = entries.slice(0, state.historySize);
     renderList();
+    maybeAutoplay(entry);
+  }
+
+  function maybeAutoplay(entry) {
     if (entry.autoplay && unlocked && $("autoplay").checked) enqueue(entry.id);
   }
+
+  // What arrived while the stream was down still plays if it is this fresh.
+  // Behind a gateway with a request timeout the stream drops every few
+  // seconds; older than this, it is no longer news.
+  const CATCH_UP_SECONDS = 60;
+  let connectedOnce = false;
 
   function connect() {
     const source = new EventSource("/api/events");
     source.addEventListener("state", (ev) => applyState(JSON.parse(ev.data)));
     source.addEventListener("announcement", (ev) => onAnnouncement(JSON.parse(ev.data)));
-    // EventSource reconnects by itself. What came in meanwhile is fetched
-    // once it is back, but not played: it is no longer news.
-    source.onopen = () => loadHistory();
+    // EventSource reconnects by itself; each (re)connect reloads the list.
+    source.onopen = async () => {
+      const seen = new Set(entries.map((e) => e.id));
+      await loadHistory();
+      if (connectedOnce) {
+        const now = (await (await fetch("/api/state")).json()).serverTime;
+        entries
+          .filter((e) => !seen.has(e.id) && now - e.at < CATCH_UP_SECONDS)
+          .reverse()
+          .forEach(maybeAutoplay);
+      }
+      connectedOnce = true;
+    };
   }
 
   // ── rendering ───────────────────────────────────────────

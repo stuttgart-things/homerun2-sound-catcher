@@ -1,0 +1,16 @@
+config.image: ghcr.io/stuttgart-things/homerun2-sound-catcher:latest
+config.namespace: homerun2
+config.redisAddr: redis-stack.homerun2.svc.cluster.local
+config.redisPort: "6379"
+config.redisStreams: messages
+config.consumerGroup: homerun2-sound-catcher
+config.soundMode: full
+config.healthPort: "8080"
+# Same as led-catcher: the HTTPRoute ships with the Service; consumers without
+# Gateway API drop it with a kustomize delete patch.
+config.httpRouteEnabled: true
+config.httpRouteParentRefName: homerun2-dev-gateway
+config.httpRouteParentRefNamespace: default
+config.httpRouteHostname: homerun2-sound-catcher.example.com
+# The player page's SSE stream must outlive the gateway's request timeout.
+config.httpRouteSseTimeout: "0s"

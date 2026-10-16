@@ -16,6 +16,7 @@ the speaker with the API token.
 
 - [docs/concept.md](docs/concept.md): design, decisions, API
 - [docs/lattepanda.md](docs/lattepanda.md): native install with speaker and systemd
+- [docs/kubernetes.md](docs/kubernetes.md): browser-only in the cluster (KCL in `kcl/`)
 
 ## Quick start
 
@@ -82,6 +83,6 @@ task precommit      # ruff check, ruff format --check, pytest
 task ci             # the same via Dagger, on Python 3.11 and the image's Python
 ```
 
-The container image (`SOUND_SINKS=browser`) has no speech yet: onnxruntime,
-which Piper needs, has no wheels for the image's Python. Run natively for
-speech.
+The container image runs with `SOUND_SINKS=browser` and has Piper and
+`de_DE-thorsten-medium` built in. It stays on Python 3.14 until onnxruntime,
+which Piper needs, ships wheels for 3.15 (`renovate.json` holds it there).

@@ -139,7 +139,7 @@ def create_app(
 
     @app.get("/api/events", tags=["player"], summary="SSE: new announcements and state changes")
     async def events(request: Request) -> EventSourceResponse:
-        return EventSourceResponse(event_stream(history, request.is_disconnected, state, stop=stop), ping=15)
+        return EventSourceResponse(event_stream(history, request.is_disconnected, state, stop=stop), ping=10)
 
     @app.get("/audio/{entry_id}/{part}", tags=["player"], summary="One audio file of an announcement")
     async def audio(entry_id: int, part: int) -> FileResponse:

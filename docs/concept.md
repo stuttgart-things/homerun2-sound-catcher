@@ -90,8 +90,8 @@ Limits worth knowing:
 
 - Phones pause background tabs and locked screens. A phone in a pocket is not
   a reliable sink; a tablet with its screen kept on is.
-- After a network drop the page reconnects and reloads its list, but does not
-  play what it missed. By then it is not news.
+- After a network drop the page reconnects and reloads its list, and plays
+  only what arrived in the last 60 seconds. Anything older is no longer news.
 - Without a token, anyone who reaches the page can listen. Keep it on the LAN
   or put it behind auth.
 
@@ -122,13 +122,15 @@ room.
   reconnects a speaker that went to sleep.
 - **A cable beats Bluetooth.** If the speaker has an AUX input, use the
   board's jack or a cheap USB sound card. No pairing, no sleep, no dropouts.
-- Run it **natively under systemd** (`docs/lattepanda.md`), not in
-  Kubernetes. Audio devices in containers are possible but fiddly. The
-  container image is for browser-only setups.
+- For the speaker, run it **natively under systemd** (`docs/lattepanda.md`).
+  Audio devices in containers are possible but fiddly.
+- **Browser-only in Kubernetes** (`docs/kubernetes.md`, `kcl/`): one pod with
+  `SOUND_SINKS=browser` and the voice built into the image. Both setups can
+  run side by side with separate consumer groups, for example the LattePanda
+  for the office speaker and the cluster for everyone else's browser.
 
 ## Not built yet / ideas
 
-- KCL manifests for a browser-only deployment in the cluster.
 - Per-rule voices (a second Piper voice for `critical`).
 - A volume ramp for alarms that repeat.
 - `led-catcher-publish` already writes test messages to the stream. A shared
