@@ -54,20 +54,22 @@ git clone https://github.com/stuttgart-things/homerun2-sound-catcher.git
 cd homerun2-sound-catcher
 python3 -m venv .venv
 .venv/bin/pip install ".[tts,s3]"
-.venv/bin/python -m piper.download_voices --data-dir voices de_DE-thorsten-medium
+.venv/bin/python -m piper.download_voices --data-dir voices en_US-lessac-medium de_DE-thorsten-medium
 ```
 
-Other voices: <https://huggingface.co/rhasspy/piper-voices>
-(`de_DE-thorsten-high` sounds better and is slower; `de_DE-kerstin-low` is a
-female voice).
+`TTS_VOICE` picks one by name. The default profile speaks English, so
+`en_US-lessac-medium` fits it. For German, use `de_DE-thorsten-medium` with
+German `say` templates: a voice reading another language sounds odd. More
+voices: <https://huggingface.co/rhasspy/piper-voices> (`en_GB-alan-medium`,
+`de_DE-thorsten-high`, which sounds better and is slower).
 
 Try it without Redis:
 
 ```bash
 SOUND_MODE=standalone SOUND_API_TOKEN=dev LOG_FORMAT=text \
-  TTS_VOICE=voices/de_DE-thorsten-medium.onnx .venv/bin/sound-catcher &
+  TTS_VOICE=en_US-lessac-medium TTS_VOICES_DIR=voices .venv/bin/sound-catcher &
 curl -X POST localhost:8080/play -H 'Authorization: Bearer dev' \
-  -H 'Content-Type: application/json' -d '{"sound":"chime.wav","say":"Hallo Büro"}'
+  -H 'Content-Type: application/json' -d '{"sound":"chime.wav","say":"Hello office"}'
 ```
 
 The page at `http://<lattepanda>:8080/` should list it.

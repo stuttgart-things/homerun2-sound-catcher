@@ -47,8 +47,19 @@ def test_cache_is_pruned_oldest_first(tmp_path):
 
 def test_no_voice_means_no_speech(tmp_path):
     assert isinstance(create_synthesizer("", tmp_path), NoSpeech)
-    with pytest.raises(ValueError, match="no such file"):
+    with pytest.raises(ValueError, match="no such voice"):
         create_synthesizer(str(tmp_path / "missing.onnx"), tmp_path)
+
+
+def test_voices_by_name_or_path(tmp_path):
+    from sound_catcher.audio.tts import resolve_voice
+
+    assert resolve_voice("en_US-lessac-medium", tmp_path) == tmp_path / "en_US-lessac-medium.onnx"
+    assert resolve_voice("/opt/v/x.onnx", tmp_path) == Path("/opt/v/x.onnx")
+    assert resolve_voice("voices/x.onnx", tmp_path) == Path("voices/x.onnx")
+    (tmp_path / "de_DE-thorsten-medium.onnx").write_bytes(b"")
+    with pytest.raises(ValueError, match="voices there: de_DE-thorsten-medium"):
+        create_synthesizer("en_US-lessac-medium", tmp_path, voices_dir=tmp_path)
 
 
 def test_silence_is_a_valid_wav(tmp_path):

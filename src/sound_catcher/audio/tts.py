@@ -5,8 +5,9 @@ so every synthesized text is kept under the hash of voice and text, and a
 repeat costs a file lookup. The cache is pruned to ``MAX_CACHE_FILES``, oldest
 first.
 
-Piper is an optional dependency (``pip install .[tts]``). Without it, or
-without ``TTS_VOICE``, there is no speech: rules still play their clips, and
+Piper is an optional dependency (``pip install .[tts]``). ``TTS_VOICE`` names
+a voice in ``TTS_VOICES_DIR`` (``en_US-lessac-medium``) or is a path to one.
+Without Piper, or without ``TTS_VOICE``, there is no speech: rules still play their clips, and
 their ``say`` text still shows in the history.
 """
 
@@ -86,14 +87,28 @@ class CachedSynthesizer:
             old.unlink(missing_ok=True)
 
 
-def create_synthesizer(voice: str, cache_dir: Path) -> Synthesizer:
-    """A Piper synthesizer for the `.onnx` voice at `voice`, or NoSpeech."""
+def resolve_voice(voice: str, voices_dir: Path) -> Path:
+    """`TTS_VOICE` as a file: a bare name (``en_US-lessac-medium``) is looked up
+    in `voices_dir`, anything with a directory part or an ``.onnx`` suffix is a path."""
+    if "/" in voice or voice.endswith(".onnx"):
+        return Path(voice)
+    return voices_dir / f"{voice}.onnx"
+
+
+def create_synthesizer(voice: str, cache_dir: Path, voices_dir: Path | None = None) -> Synthesizer:
+    """A Piper synthesizer for the voice `voice` (a name in `voices_dir` or a
+    path to an `.onnx` file), or NoSpeech without one."""
     if not voice:
         logger.info("no TTS_VOICE set: announcements are clip-only")
         return NoSpeech()
-    voice_path = Path(voice)
+    voice_path = resolve_voice(voice, voices_dir or Path("voices"))
     if not voice_path.is_file():
-        raise ValueError(f"TTS_VOICE {voice!r}: no such file (a Piper .onnx voice, with its .onnx.json next to it)")
+        known = sorted(p.stem for p in voice_path.parent.glob("*.onnx")) if voice_path.parent.is_dir() else []
+        hint = f"; voices there: {', '.join(known)}" if known else ""
+        raise ValueError(
+            f"TTS_VOICE {voice!r}: no such voice {str(voice_path)!r} "
+            f"(a Piper .onnx voice, with its .onnx.json next to it){hint}"
+        )
     try:
         from piper import PiperVoice
     except ImportError:

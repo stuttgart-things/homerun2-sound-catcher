@@ -87,3 +87,28 @@ def test_bundled_profile_loads_and_names_bundled_clips():
     for rule in profile.rules:
         if rule.sound:
             assert (root / "sounds" / rule.sound).is_file(), rule.sound
+
+
+@pytest.mark.parametrize(
+    "title, spoken",
+    [
+        ("[WARN] k8s-cluster disk usage above 80%", "k8s-cluster disk usage above 80%"),
+        ("[OK] [CI] redis pipeline passed", "redis pipeline passed"),
+        ("disk [80%] full", "disk [80%] full"),
+        ("[WARN]", "[WARN]"),
+    ],
+)
+def test_spoken_title_drops_leading_tags(title, spoken):
+    from sound_catcher.profile.engine import spoken_title
+
+    assert spoken_title(title) == spoken
+
+
+def test_default_profile_speaks_english_without_repeating_the_system():
+    from pathlib import Path
+
+    profile = load_profile(Path(__file__).resolve().parents[1] / "profile.yaml")
+    warn = Message(system="k8s-cluster", severity="warning", title="[WARN] k8s-cluster disk usage above 80%")
+    assert profile.match(warn).render(warn) == "Warning: k8s-cluster disk usage above 80%"
+    err = Message(system="nas01", severity="error", title="backup failed")
+    assert profile.match(err).render(err) == "Error on nas01: backup failed"

@@ -24,9 +24,9 @@ the speaker with the API token.
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev,tts,s3]"
-task voice          # downloads de_DE-thorsten-medium into voices/
+task voice          # downloads en_US-lessac-medium into voices/
 task run            # no Redis, browser only, token "dev" → http://localhost:8080/
-task say -- "Pizza ist da"
+task say -- "Pizza is here"
 ```
 
 ## Profile
@@ -69,7 +69,8 @@ available.
 | `PROFILE_PATH` | `profile.yaml` | Sound rules |
 | `SOUNDS_DIR` | `<repo>/sounds` | Clips the rules and `/play` may name |
 | `SOUNDS_S3_BUCKET` | – | Sync sounds from this bucket; see [docs/s3-sounds.md](docs/s3-sounds.md) for `SOUNDS_S3_*` and authentication |
-| `TTS_VOICE` | – | Path to a Piper `.onnx` voice. Empty: no speech, clips only |
+| `TTS_VOICE` | – (image: `en_US-lessac-medium`) | A Piper voice: a name in `TTS_VOICES_DIR`, or a path to an `.onnx`. Empty: no speech, clips only |
+| `TTS_VOICES_DIR` | `<repo>/voices` (image: `/app/voices`) | Where voice names are looked up. The image carries `en_US-lessac-medium` and `de_DE-thorsten-medium` |
 | `TTS_CACHE_DIR` | `~/.cache/homerun2-sound-catcher` | Synthesized speech, pruned to 500 files |
 | `PLAYER_CMD` | first of mpv, ffplay, pw-play | Local player; `{file}`, `{volume}` (0–100), `{volume_frac}` (0–1) |
 | `PREROLL` | `500ms` | Silence before each local announcement, to wake a sleeping speaker (`0`: off) |
@@ -89,5 +90,5 @@ task ci             # the same via Dagger, on Python 3.11 and the image's Python
 ```
 
 The container image runs with `SOUND_SINKS=browser` and has Piper and
-`de_DE-thorsten-medium` built in. It stays on Python 3.14 until onnxruntime,
+`en_US-lessac-medium` (default) and `de_DE-thorsten-medium` built in. It stays on Python 3.14 until onnxruntime,
 which Piper needs, ships wheels for 3.15 (`renovate.json` holds it there).

@@ -94,16 +94,16 @@ rules:
   critical:
     severity: [critical]
     sound: alarm.wav
-    say: "Kritisch! {{ system }}: {{ title }}"
+    say: "Critical{% if system not in spoken_title %} on {{ system }}{% endif %}: {{ spoken_title }}"
   errors:
     severity: [error]
     sound: chime.wav
-    say: "Fehler auf {{ system }}: {{ title }}"
+    say: "Error{% if system not in spoken_title %} on {{ system }}{% endif %}: {{ spoken_title }}"
     volume: 85
   warnings:
     severity: [warning]
     sound: ding.wav
-    say: "Warnung von {{ system }}: {{ title }}"
+    say: "Warning{% if system not in spoken_title %} from {{ system }}{% endif %}: {{ spoken_title }}"
     volume: 70
   success:
     severity: [success]

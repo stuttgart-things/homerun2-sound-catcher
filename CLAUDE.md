@@ -8,7 +8,7 @@ homerun2-sound-catcher — Python microservice that consumes messages from Redis
 
 - **Language**: Python 3.11+
 - **Consumer**: Redis Streams via `redis-py` async (consumer groups), same flow as led-catcher
-- **TTS**: `piper-tts` (optional extra `[tts]`), cached on disk
+- **TTS**: `piper-tts` (optional extra `[tts]`), cached on disk; voices by name (`TTS_VOICE`), image default `en_US-lessac-medium`, `de_DE-thorsten-medium` alongside
 - **Playback**: external player (mpv / ffplay / pw-play) on one queue thread
 - **Web**: FastAPI + SSE (sse-starlette), a single static page with vanilla JS
 - **CI**: Dagger module `stuttgart-things/dagger/python`, GitHub Actions, Taskfile
@@ -56,7 +56,7 @@ Branch-per-issue with PR and merge, as in the sibling repos:
 pip install -e ".[dev,tts,s3]"
 task precommit
 task run                     # standalone, browser only, token "dev"
-task say -- "Hallo Büro"
+task say -- "Hello office"
 ```
 
 ## Reference Projects

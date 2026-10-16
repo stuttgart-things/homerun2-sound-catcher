@@ -91,7 +91,8 @@ class Config:
     health_port: int = 8080
     profile_path: str = "profile.yaml"
     sounds_dir: Path = REPO_ROOT / "sounds"
-    tts_voice: str = ""  # path to a Piper .onnx voice; empty: no speech
+    tts_voice: str = ""  # a Piper voice: name in tts_voices_dir, or a path; empty: no speech
+    tts_voices_dir: Path = REPO_ROOT / "voices"
     tts_cache_dir: Path = Path.home() / ".cache" / "homerun2-sound-catcher"
     player_cmd: str = ""  # empty: the first of mpv, ffplay, pw-play found
     preroll: float = 0.5  # seconds of silence before each local announcement
@@ -244,6 +245,7 @@ def load_config() -> Config:
         raise ValueError("REDIS_STARTUP_TIMEOUT: must be positive")
     cache_dir = _getenv("TTS_CACHE_DIR").strip()
     sounds_dir = _getenv("SOUNDS_DIR").strip()
+    voices_dir = _getenv("TTS_VOICES_DIR").strip()
     return Config(
         redis=RedisConfig(
             addr=_getenv("REDIS_ADDR", "localhost"),
@@ -267,6 +269,7 @@ def load_config() -> Config:
         profile_path=_getenv("PROFILE_PATH", "profile.yaml"),
         sounds_dir=Path(sounds_dir) if sounds_dir else REPO_ROOT / "sounds",
         tts_voice=_getenv("TTS_VOICE").strip(),
+        tts_voices_dir=Path(voices_dir) if voices_dir else REPO_ROOT / "voices",
         tts_cache_dir=Path(cache_dir) if cache_dir else Path.home() / ".cache" / "homerun2-sound-catcher",
         player_cmd=_getenv("PLAYER_CMD").strip(),
         preroll=_env_duration("PREROLL", 0.5),

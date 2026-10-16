@@ -5,7 +5,8 @@ In the cluster there is no speaker. The catcher runs with
 announcements are heard: on a laptop, a wall tablet, or the office PC with the
 Bluetooth speaker attached.
 
-The image has Piper and a German voice (`de_DE-thorsten-medium`) built in,
+The image has Piper and two voices built in, `en_US-lessac-medium` (the
+default, matching the English default profile) and `de_DE-thorsten-medium`,
 so the pod speaks without a volume or a download at start.
 
 ## Render and apply
