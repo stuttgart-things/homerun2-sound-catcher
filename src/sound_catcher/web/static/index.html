@@ -1,90 +1,247 @@
 <!doctype html>
-<html lang="de">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>homerun2 sound</title>
+<title>HOMERUN² SOUND CATCHER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+  /* The homerun2 look (core-catcher, led-catcher): navy, an indigo-to-purple
+     header with an orange rule, pixel type for the name. */
   :root {
-    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #6b7385; --line: #e3e6ec;
-    --accent: #2f6fed; --accent-text: #ffffff;
-    --error: #d93a3a; --warning: #d98a1a; --success: #2a9d5b; --info: #2f6fed; --debug: #8a8fa0;
+    color-scheme: dark;
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-indigo: #6366f1;
+    --accent-purple: #8b5cf6;
+    --accent-violet: #a855f7;
+    --accent-orange: #f97316;
+    --accent-amber: #fbbf24;
+    --accent-link: #818cf8;
+    --severity-error: #ff4444;
+    --severity-warning: #f97316;
+    --severity-success: #4ade80;
+    --severity-info: #60a5fa;
+    --severity-debug: #64748b;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #12151c; --card: #1b2029; --text: #e7eaf0; --muted: #8e96a8; --line: #2a303c;
-      --accent: #5b8ff9; --accent-text: #0b0e14;
-      --error: #f06464; --warning: #f0a83c; --success: #4cc283; --info: #5b8ff9; --debug: #8a8fa0;
-    }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 13px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 16px; }
-  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
-  h1 { font-size: 20px; margin: 0; flex: 1 1 auto; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--card); }
-  .chip.on { color: var(--success); border-color: var(--success); }
-  .chip.warn { color: var(--warning); border-color: var(--warning); }
-  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; }
-  .bar .spacer { flex: 1; }
-  button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
-  button:hover:not(:disabled) { border-color: var(--accent); }
-  button:disabled { opacity: .45; cursor: default; }
-  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-  label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
-  details { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; }
-  summary { cursor: pointer; color: var(--muted); }
-  details .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
-  input[type=password] { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); min-width: 0; flex: 1 1 180px; }
-  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-  li { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--sev, var(--info)); border-radius: 10px; padding: 10px 12px; }
-  li.playing { outline: 2px solid var(--accent); }
-  li.quiet { opacity: .7; }
-  .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); }
-  .sev { font-weight: 600; color: var(--sev); text-transform: uppercase; }
-  .title { font-weight: 600; margin: 2px 0; overflow-wrap: anywhere; }
-  .spoken { color: var(--muted); font-style: italic; overflow-wrap: anywhere; }
-  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .actions button { font-size: 13px; padding: 4px 8px; }
-  .empty { color: var(--muted); text-align: center; padding: 32px 0; }
-  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 16px; }
-  .notice { color: var(--warning); font-size: 13px; }
+
+  /* Header */
+  .header-bar {
+    background: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-purple) 50%, var(--accent-violet) 100%);
+    padding: 1.8rem 1.5rem;
+    border-bottom: 3px solid var(--accent-orange);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .header-bar h1 {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 2.2rem;
+    font-weight: normal;
+    color: #fff;
+    letter-spacing: 0.08em;
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+  }
+  .header-bar .subtitle {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.7rem;
+    color: var(--accent-amber);
+    margin-top: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge {
+    background: rgba(255,255,255,0.15);
+    color: #f8fafc;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+  }
+  .badge.off { color: rgba(248,250,252,0.55); }
+  .badge.warn { background: rgba(249,115,22,0.35); }
+
+  main { flex: 1; padding: 1rem 1.5rem; }
+
+  /* Controls */
+  .controls { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+  .controls .spacer { flex: 1; }
+  button {
+    font: inherit;
+    font-size: 0.8rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 0.45rem 0.8rem;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent-indigo); background: rgba(99,102,241,0.15); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary { background: var(--accent-indigo); border-color: var(--accent-indigo); color: #fff; }
+  button.primary:hover { background: var(--accent-purple); }
+  label { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.8rem; }
+  input[type=checkbox] { accent-color: var(--accent-indigo); }
+  input[type=password] {
+    font: inherit;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+    min-width: 0;
+    flex: 1 1 180px;
+    max-width: 280px;
+  }
+  .notice { color: var(--severity-warning); margin-bottom: 0.75rem; }
+  details {
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-tertiary);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+  }
+  summary { cursor: pointer; color: var(--accent-link); text-transform: uppercase; font-weight: bold; font-size: 0.75rem; }
+  details .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 0.75rem; }
+  #mute-state { color: var(--text-secondary); }
+
+  /* The announcements, as core-catcher's message table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  thead th {
+    background: var(--bg-secondary);
+    color: var(--accent-link);
+    text-transform: uppercase;
+    text-align: left;
+    font-weight: bold;
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+  }
+  tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--bg-secondary); vertical-align: top; }
+  tbody tr:hover { background: rgba(99,102,241,0.08); }
+  tbody tr.playing { background: rgba(99,102,241,0.2); }
+  tbody tr.quiet td.title-cell, tbody tr.quiet td.status { color: var(--text-secondary); }
+  td.time { white-space: nowrap; color: var(--text-secondary); }
+  td.sev { font-weight: bold; text-transform: uppercase; color: var(--sev); white-space: nowrap; }
+  td.system { color: var(--text-primary); }
+  .title { overflow-wrap: anywhere; }
+  .spoken { color: var(--text-secondary); font-style: italic; margin-top: 0.25rem; overflow-wrap: anywhere; }
+  td.status { white-space: nowrap; color: var(--text-secondary); font-size: 0.8rem; }
+  td.actions { white-space: nowrap; text-align: right; }
+  td.actions button { padding: 0.3rem 0.6rem; margin-left: 0.25rem; }
+  .empty { color: var(--text-muted); text-align: center; padding: 3rem 0; }
+  .cap { color: var(--text-muted); font-size: 0.75rem; margin-top: 0.75rem; }
+
+  /* Footer, as core-catcher's */
+  .build-footer {
+    background: var(--bg-secondary);
+    color: #475569;
+    padding: 0.6rem 1.5rem;
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+    font-size: 0.75rem;
+    border-top: 1px solid var(--bg-tertiary);
+  }
+  .build-footer .label { color: var(--text-muted); }
+  .build-footer .value { color: var(--accent-link); }
+  .build-footer .brand { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+  .build-footer a { color: var(--accent-link); text-decoration: none; }
+  .build-footer img { height: 24px; }
+
+  /* Phones: one card per announcement instead of a wide row */
+  @media (max-width: 720px) {
+    .header-bar { padding: 1.2rem 1rem; }
+    .header-bar h1 { font-size: 1.4rem; }
+    main { padding: 1rem; }
+    thead { display: none; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    tbody tr { border: 1px solid var(--bg-secondary); border-left: 3px solid var(--sev); border-radius: 0.5rem; margin-bottom: 0.75rem; }
+    tbody td { border: 0; padding: 0.3rem 0.8rem; }
+    td.actions { text-align: left; padding-bottom: 0.7rem; }
+    td.actions button { margin: 0.25rem 0.25rem 0 0; }
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>🔊 homerun2 sound</h1>
-    <div class="chips" id="chips"></div>
-  </header>
+<div class="header-bar">
+  <div>
+    <h1>HOMERUN²</h1>
+    <div class="subtitle">sound catcher · player</div>
+  </div>
+  <div class="badges" id="badges"></div>
+</div>
 
-  <div class="bar">
-    <button id="unlock" class="primary">🔊 Ton aktivieren</button>
-    <label id="autoplay-label"><input type="checkbox" id="autoplay" checked> Neue automatisch abspielen</label>
+<main>
+  <div class="controls">
+    <button id="unlock" class="primary">🔊 Enable sound</button>
+    <label id="autoplay-label"><input type="checkbox" id="autoplay" checked> Play new announcements</label>
     <span class="spacer"></span>
-    <button id="reset" title="Verlauf leeren und ab jetzt neu sammeln">Neue Sitzung</button>
+    <button id="reset" title="Clear the list and collect from now on">New session</button>
   </div>
   <p class="notice" id="notice" hidden></p>
 
   <details id="control" hidden>
-    <summary>Lautsprecher-Steuerung</summary>
+    <summary>Speaker control</summary>
     <div class="row">
-      <input type="password" id="token" placeholder="API-Token" autocomplete="off">
-      <button id="save-token">Übernehmen</button>
+      <input type="password" id="token" placeholder="API token" autocomplete="off">
+      <button id="save-token">Save</button>
     </div>
-    <div class="row" id="mute-row">
+    <div class="row">
       <span id="mute-state"></span>
-      <button data-mute="15">15 min stumm</button>
-      <button data-mute="60">1 h stumm</button>
-      <button id="unmute">Stumm aufheben</button>
+      <button data-mute="15">Mute 15 min</button>
+      <button data-mute="60">Mute 1 h</button>
+      <button id="unmute">Unmute</button>
     </div>
   </details>
 
-  <ol id="list"></ol>
-  <p class="empty" id="empty">Noch nichts in dieser Sitzung.</p>
-  <footer>homerun2-sound-catcher {{ version }} · zeigt die Ansagen seit Beginn dieser Sitzung, höchstens <span id="cap">–</span></footer>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time ↓</th><th>Severity</th><th>System</th><th>Title</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="list"></tbody>
+    </table>
+  </div>
+  <p class="empty" id="empty">Nothing in this session yet.</p>
+  <p class="cap">Announcements since this session started, at most <span id="cap">–</span>.</p>
 </main>
+
+<div class="build-footer">
+  <div><span class="label">version</span> <span class="value">{{ version }}</span></div>
+  <div><span class="label">commit</span> <span class="value">{{ commit }}</span></div>
+  <div><span class="label">built</span> <span class="value">{{ date }}</span></div>
+  <div class="brand">
+    <span class="label">a</span>
+    <a href="https://github.com/stuttgart-things" target="_blank" rel="noopener">stuttgart-things</a>
+    <span class="label">project</span>
+    <img src="https://raw.githubusercontent.com/stuttgart-things/docs/main/hugo/sthings-logo.png" alt="sthings">
+  </div>
+</div>
+
 <script>
 (() => {
   "use strict";
@@ -103,7 +260,7 @@
   let sessionStart = parseFloat(store.get("sessionStart") || "0");
 
   // ── playback in the browser ─────────────────────────────
-  // Browsers only play audio after a user gesture; "Ton aktivieren" is that
+  // Browsers only play audio after a user gesture; "Enable sound" is that
   // gesture. A short silent clip proves it worked.
   $("unlock").onclick = async () => {
     audio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
@@ -151,7 +308,7 @@
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) {
-      const msg = res.status === 401 ? "Token falsch" : res.status === 429 ? "Zu viele Anfragen, bitte kurz warten" : "Fehler " + res.status;
+      const msg = res.status === 401 ? "Wrong token" : res.status === 429 ? "Too many requests, wait a moment" : "Error " + res.status;
       notice(msg);
       throw new Error(msg);
     }
@@ -231,26 +388,32 @@
   }
 
   // ── rendering ───────────────────────────────────────────
-  function chip(text, cls) {
-    const el = document.createElement("span");
-    el.className = "chip " + (cls || "");
-    el.textContent = text;
-    return el;
+  function el(tag, cls, text) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function badge(label, value, cls) {
+    const b = el("div", "badge " + (cls || ""));
+    b.append(label + " ", el("strong", "", value));
+    return b;
   }
 
   function renderBar() {
-    const chips = $("chips");
-    chips.replaceChildren(
-      chip("Lautsprecher", state.sinks.includes("local") ? "on" : ""),
-      chip("Browser", state.sinks.includes("browser") ? "on" : ""),
-      chip(state.speech ? "Sprache" : "nur Clips", state.speech ? "on" : ""),
-    );
     const muted = state.mutedUntil ? new Date(state.mutedUntil) : null;
-    if (muted) chips.append(chip("stumm bis " + muted.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), "warn"));
+    const sinks = state.sinks.length ? state.sinks.join(" + ") : "none";
+    const badges = [
+      badge("Sinks:", sinks),
+      badge("Speech:", state.speech ? "on" : "clips only", state.speech ? "" : "off"),
+    ];
+    if (muted) badges.push(badge("Muted until", muted.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), "warn"));
+    $("badges").replaceChildren(...badges);
     $("unlock").hidden = unlocked;
     $("autoplay-label").hidden = !state.sinks.includes("browser");
     $("control").hidden = !state.writable;
-    $("mute-state").textContent = muted ? "Stumm bis " + muted.toLocaleTimeString() : "Nicht stumm";
+    $("mute-state").textContent = muted ? "Muted until " + muted.toLocaleTimeString() : "Not muted";
     $("cap").textContent = state.historySize;
   }
 
@@ -258,53 +421,50 @@
     return new Date(epoch * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   }
 
+  function sevVar(severity) {
+    const s = (severity || "").toLowerCase();
+    if (s === "error" || s === "critical") return "var(--severity-error)";
+    if (["warning", "success", "debug"].includes(s)) return `var(--severity-${s})`;
+    return "var(--severity-info)";
+  }
+
   function renderList() {
-    const list = $("list");
     $("empty").hidden = entries.length > 0;
-    list.replaceChildren(...entries.map((e) => {
-      const li = document.createElement("li");
-      li.style.setProperty("--sev", `var(--${["error", "critical"].includes(e.severity) ? "error" : ["warning", "success", "debug"].includes(e.severity) ? e.severity : "info"})`);
-      if (e.id === playing) li.classList.add("playing");
-      if (e.outcome !== "played") li.classList.add("quiet");
+    $("list").replaceChildren(...entries.map((e) => {
+      const tr = el("tr");
+      tr.style.setProperty("--sev", sevVar(e.severity));
+      if (e.id === playing) tr.classList.add("playing");
+      if (e.outcome !== "played") tr.classList.add("quiet");
 
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      const sev = document.createElement("span");
-      sev.className = "sev";
-      sev.textContent = e.severity;
-      const bits = [fmtTime(e.at), e.system, e.outcomeText];
-      if (e.origin === "replay") bits.push("erneut abgespielt");
-      if (e.origin === "api") bits.push("über API");
-      meta.append(sev, ...bits.map((t) => { const s = document.createElement("span"); s.textContent = t; return s; }));
+      const titleCell = el("td", "title-cell");
+      titleCell.append(el("div", "title", e.title || "(no title)"));
+      if (e.text) titleCell.append(el("div", "spoken", "“" + e.text + "”"));
 
-      const title = document.createElement("div");
-      title.className = "title";
-      title.textContent = e.title || "(ohne Titel)";
-      li.append(meta, title);
+      let status = e.outcomeText;
+      if (e.origin === "replay") status += " · replayed";
+      if (e.origin === "api") status += " · via API";
 
-      if (e.text) {
-        const spoken = document.createElement("div");
-        spoken.className = "spoken";
-        spoken.textContent = "„" + e.text + "“";
-        li.append(spoken);
-      }
-
-      const actions = document.createElement("div");
-      actions.className = "actions";
-      const listen = document.createElement("button");
-      listen.textContent = e.id === playing ? "⏵ läuft …" : "▶ Im Browser anhören";
+      const actions = el("td", "actions");
+      const listen = el("button", "", e.id === playing ? "⏵ playing…" : "▶ Listen");
       listen.disabled = !e.audio.length || e.id === playing;
       listen.onclick = async () => { if (!unlocked) await $("unlock").onclick(); enqueue(e.id); };
       actions.append(listen);
       if (state.speakerReplay && token()) {
-        const speaker = document.createElement("button");
-        speaker.textContent = "🔊 Auf Lautsprecher";
+        const speaker = el("button", "", "🔊 Speaker");
         speaker.disabled = !e.audio.length;
         speaker.onclick = () => write("POST", `/api/history/${e.id}/replay`).catch(() => {});
         actions.append(speaker);
       }
-      li.append(actions);
-      return li;
+
+      tr.append(
+        el("td", "time", fmtTime(e.at)),
+        el("td", "sev", e.severity),
+        el("td", "system", e.system),
+        titleCell,
+        el("td", "status", status),
+        actions,
+      );
+      return tr;
     }));
   }
 
