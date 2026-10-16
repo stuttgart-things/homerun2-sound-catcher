@@ -9,6 +9,7 @@ browser for anyone, on the office speaker with the API token.
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import secrets
 import threading
@@ -122,7 +123,9 @@ def create_app(
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def index() -> HTMLResponse:
         page = resources.files("sound_catcher.web").joinpath("static/index.html").read_text()
-        return HTMLResponse(page.replace("{{ version }}", version), headers={"Cache-Control": "no-cache"})
+        for key, value in (("version", version), ("commit", commit[:7]), ("date", date)):
+            page = page.replace("{{ " + key + " }}", html.escape(value))
+        return HTMLResponse(page, headers={"Cache-Control": "no-cache"})
 
     @app.get("/api/state", tags=["player"], summary="Sinks, speech, mute and what the page may offer")
     async def get_state() -> dict:

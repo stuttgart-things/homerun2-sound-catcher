@@ -27,7 +27,8 @@ def setup(make_dispatcher):
 def test_page_and_state(setup):
     client, _, _ = setup()
     page = client.get("/")
-    assert page.status_code == 200 and "Ton aktivieren" in page.text
+    assert page.status_code == 200 and "Enable sound" in page.text
+    assert "HOMERUN²" in page.text and "{{" not in page.text
     state = client.get("/api/state").json()
     assert state["sinks"] == ["local", "browser"]
     assert state["speakerReplay"] is True

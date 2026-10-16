@@ -16,13 +16,13 @@ from pathlib import Path
 # Why an announcement made a sound or did not.
 PLAYED = "played"
 OUTCOMES = {
-    PLAYED: "gespielt",
-    "silent": "stumm (Regel)",
-    "no_rule": "keine Regel",
-    "quiet_hours": "Ruhezeit",
-    "muted": "stummgeschaltet",
-    "duplicate": "Wiederholung",
-    "nothing": "nichts abzuspielen",
+    PLAYED: "played",
+    "silent": "silent (rule)",
+    "no_rule": "no rule",
+    "quiet_hours": "quiet hours",
+    "muted": "muted",
+    "duplicate": "repeat",
+    "nothing": "nothing to play",
 }
 
 
