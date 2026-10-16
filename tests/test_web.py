@@ -171,3 +171,11 @@ async def test_event_stream_sends_state_then_new_announcements_once(make_dispatc
     stop.set()
     with pytest.raises(StopAsyncIteration):
         await anext(stream)
+
+
+def test_sounds_listing_and_unknown_sound(setup):
+    client, _, _ = setup()
+    sounds = client.get("/api/sounds").json()
+    assert sounds == {"alarm.wav": "bundled", "chime.wav": "bundled", "success.wav": "bundled"}
+    res = client.post("/play", json={"sound": "nope.wav"}, headers=AUTH)
+    assert res.status_code == 422 and "api/sounds" in res.json()["detail"]

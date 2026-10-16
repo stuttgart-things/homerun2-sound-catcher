@@ -141,6 +141,10 @@ def create_app(
     async def events(request: Request) -> EventSourceResponse:
         return EventSourceResponse(event_stream(history, request.is_disconnected, state, stop=stop), ping=10)
 
+    @app.get("/api/sounds", tags=["player"], summary="The sounds rules and POST /play can name, and their source")
+    async def get_sounds() -> dict:
+        return dispatcher.sounds.names()
+
     @app.get("/audio/{entry_id}/{part}", tags=["player"], summary="One audio file of an announcement")
     async def audio(entry_id: int, part: int) -> FileResponse:
         # Addressed by announcement, never by path: only files the dispatcher
@@ -197,6 +201,8 @@ def _write_router(dispatcher: Dispatcher, api: ApiConfig, speaker: bool, clock) 
     async def play(req: PlayRequest) -> dict:
         if not req.say.strip() and not req.sound:
             raise HTTPException(status_code=422, detail="say or sound is required")
+        if req.sound and dispatcher.sounds.find(req.sound) is None:
+            raise HTTPException(status_code=422, detail=f"no sound {req.sound!r}; GET /api/sounds lists them")
         if len(req.say) > api.max_text:
             raise HTTPException(status_code=422, detail=f"say is longer than {api.max_text} characters")
         entry = await asyncio.to_thread(

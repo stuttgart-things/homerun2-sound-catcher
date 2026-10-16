@@ -24,9 +24,9 @@ tasks:
   ## ──────────────────────────────────────────────
 
   install:
-    desc: Install in editable mode with dev and tts dependencies
+    desc: Install in editable mode with dev, tts and s3 dependencies
     cmds:
-      - pip install -e ".[dev,tts]"
+      - pip install -e ".[dev,tts,s3]"
 
   lint:
     desc: Run ruff linter

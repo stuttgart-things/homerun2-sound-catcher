@@ -56,6 +56,28 @@ class ApiConfig:
 
 
 @dataclass
+class S3Config:
+    """Sounds from an S3 bucket. No bucket, no sync.
+
+    Credentials are deliberately not here: boto3 reads AWS_ACCESS_KEY_ID and
+    AWS_SECRET_ACCESS_KEY itself, and with them every other way of the AWS
+    chain (profiles, web identity) works too.
+    """
+
+    bucket: str = ""
+    endpoint: str = ""  # empty: AWS
+    prefix: str = ""
+    region: str = "us-east-1"
+    interval: float = 300.0
+    anonymous: bool = False
+    cache_dir: Path | None = None  # None: <TTS_CACHE_DIR>/s3-sounds
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.bucket)
+
+
+@dataclass
 class Config:
     redis: RedisConfig = field(default_factory=RedisConfig)
     api: ApiConfig = field(default_factory=ApiConfig)
@@ -75,6 +97,7 @@ class Config:
     preroll: float = 0.5  # seconds of silence before each local announcement
     dedup_window: float = 60.0  # seconds; 0 = off
     history_size: int = 20
+    s3: S3Config = field(default_factory=lambda: S3Config())
     log_format: str = "json"
     log_level: str = "info"
     version: str = "dev"
@@ -150,6 +173,33 @@ def parse_sinks(raw: str) -> list[str]:
     return sinks
 
 
+def _env_bool(key: str, default: bool = False) -> bool:
+    raw = os.environ.get(key, "").strip().lower()
+    if not raw:
+        return default
+    if raw in ("1", "true", "yes", "on"):
+        return True
+    if raw in ("0", "false", "no", "off"):
+        return False
+    raise ValueError(f"{key} {raw!r}: must be true or false")
+
+
+def load_s3_config() -> S3Config:
+    interval = _env_duration("SOUNDS_S3_INTERVAL", 300.0)
+    if interval < 10:
+        raise ValueError("SOUNDS_S3_INTERVAL: must be at least 10s")
+    cache_dir = _getenv("SOUNDS_S3_CACHE_DIR").strip()
+    return S3Config(
+        bucket=_getenv("SOUNDS_S3_BUCKET").strip(),
+        endpoint=_getenv("SOUNDS_S3_ENDPOINT").strip(),
+        prefix=_getenv("SOUNDS_S3_PREFIX").strip(),
+        region=_getenv("SOUNDS_S3_REGION").strip() or "us-east-1",
+        interval=interval,
+        anonymous=_env_bool("SOUNDS_S3_ANONYMOUS"),
+        cache_dir=Path(cache_dir) if cache_dir else None,
+    )
+
+
 def parse_mode(raw: str) -> str:
     mode = raw.strip().lower() or "full"
     if mode not in SOUND_MODES:
@@ -222,6 +272,7 @@ def load_config() -> Config:
         preroll=_env_duration("PREROLL", 0.5),
         dedup_window=_env_duration("DEDUP_WINDOW", 60.0),
         history_size=_env_int("HISTORY_SIZE", 20, minimum=1, maximum=500),
+        s3=load_s3_config(),
         log_format=_getenv("LOG_FORMAT", "json"),
         log_level=_getenv("LOG_LEVEL", "info"),
         version=_getenv("VERSION", "dev"),

@@ -108,6 +108,55 @@ deployment = {
                                 name: "PROFILE_PATH"
                                 value: config.profilePath
                             }
+                            # Sounds from S3: an empty bucket turns the sync off.
+                            {
+                                name: "SOUNDS_S3_BUCKET"
+                                value: config.s3Bucket
+                            }
+                            {
+                                name: "SOUNDS_S3_ENDPOINT"
+                                value: config.s3Endpoint
+                            }
+                            {
+                                name: "SOUNDS_S3_PREFIX"
+                                value: config.s3Prefix
+                            }
+                            {
+                                name: "SOUNDS_S3_REGION"
+                                value: config.s3Region
+                            }
+                            {
+                                name: "SOUNDS_S3_INTERVAL"
+                                value: config.s3Interval
+                            }
+                            {
+                                name: "SOUNDS_S3_ANONYMOUS"
+                                value: "true" if config.s3Anonymous else "false"
+                            }
+                            {
+                                # Optional, like REDIS_PASSWORD: no Secret, no
+                                # credentials (anonymous or a public bucket).
+                                name: "AWS_ACCESS_KEY_ID"
+                                valueFrom: {
+                                    secretKeyRef: {
+                                        name: "{}-s3".format(config.name)
+                                        key: "accessKey"
+                                        optional: True
+                                    }
+                                }
+                            }
+                            {
+                                # Optional, like REDIS_PASSWORD: no Secret, no
+                                # credentials (anonymous or a public bucket).
+                                name: "AWS_SECRET_ACCESS_KEY"
+                                valueFrom: {
+                                    secretKeyRef: {
+                                        name: "{}-s3".format(config.name)
+                                        key: "secretKey"
+                                        optional: True
+                                    }
+                                }
+                            }
                             {
                                 # The root filesystem is read-only; synthesized
                                 # speech goes to the /tmp emptyDir.

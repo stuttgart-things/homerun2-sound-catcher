@@ -7,7 +7,7 @@ COPY src/ src/
 
 # Python 3.14, not the newest: onnxruntime, which Piper needs, has no wheels
 # for 3.15 yet. renovate.json holds the image below 3.15 until it does.
-RUN pip install --no-cache-dir ".[tts]" \
+RUN pip install --no-cache-dir ".[tts,s3]" \
     && rm -rf /root/.cache
 
 # The voice is baked in, so a pod speaks without a volume or a download at

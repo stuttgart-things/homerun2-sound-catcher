@@ -23,6 +23,14 @@ _httpRouteHostname = option("config.httpRouteHostname")
 _httpRouteAnnotations = option("config.httpRouteAnnotations") or {}
 _httpRouteSseTimeout = option("config.httpRouteSseTimeout")
 _extraEnvVars = option("config.extraEnvVars") or {}
+_s3Bucket = option("config.s3Bucket")
+_s3Endpoint = option("config.s3Endpoint")
+_s3Prefix = option("config.s3Prefix")
+_s3Region = option("config.s3Region")
+_s3Interval = option("config.s3Interval")
+_s3Anonymous = option("config.s3Anonymous")
+_s3AccessKey = option("config.s3AccessKey")
+_s3SecretKey = option("config.s3SecretKey")
 
 # Config instance with command-line overrides
 config: schema.SoundCatcher = schema.SoundCatcher {
@@ -62,6 +70,22 @@ config: schema.SoundCatcher = schema.SoundCatcher {
         httpRouteSseTimeout = _httpRouteSseTimeout
     if _extraEnvVars:
         extraEnvVars = _extraEnvVars
+    if _s3Bucket:
+        s3Bucket = _s3Bucket
+    if _s3Endpoint:
+        s3Endpoint = _s3Endpoint
+    if _s3Prefix:
+        s3Prefix = _s3Prefix
+    if _s3Region:
+        s3Region = _s3Region
+    if _s3Interval:
+        s3Interval = _s3Interval
+    if _s3Anonymous:
+        s3Anonymous = _s3Anonymous in [True, "True", "true"]
+    if _s3AccessKey:
+        s3AccessKey = _s3AccessKey
+    if _s3SecretKey:
+        s3SecretKey = _s3SecretKey
 }
 
 # Common labels applied to all resources

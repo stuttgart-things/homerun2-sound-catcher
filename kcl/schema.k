@@ -64,6 +64,21 @@ schema SoundCatcher:
     # endpoints are not registered.
     apiToken: str = ""
 
+    # Sounds from an S3 bucket (MinIO, Ceph, AWS). Empty bucket: no sync,
+    # only the clips bundled in the image.
+    s3Bucket: str = ""
+    s3Endpoint: str = ""
+    s3Prefix: str = ""
+    s3Region: str = "us-east-1"
+    s3Interval: str = "5m"
+    # Public bucket, no credentials.
+    s3Anonymous: bool = False
+    # Read-only credentials. Set: the -s3 Secret is created. Empty: the pod
+    # still reads AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY from a Secret of
+    # that name if something else (ESO) provides it.
+    s3AccessKey: str = ""
+    s3SecretKey: str = ""
+
     # Profile path inside container
     profilePath: str = "/config/profile.yaml"
 
@@ -113,3 +128,4 @@ rules:
         name != "", "name must not be empty"
         namespace != "", "namespace must not be empty"
         soundMode in ["full", "standalone"], "soundMode must be full or standalone"
+        bool(s3AccessKey) == bool(s3SecretKey), "s3AccessKey and s3SecretKey go together"
