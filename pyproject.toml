@@ -35,7 +35,7 @@ dev = [
     "pytest-asyncio>=0.24",
     # Pinned exactly, and kept equal to ruff-version in
     # .github/workflows/build-test.yaml, as in led-catcher.
-    "ruff==0.17.0",
+    "ruff==0.17.1",
     "httpx>=0.28",
 ]
 # Speech. Without it, rules play their clips and skip `say`.

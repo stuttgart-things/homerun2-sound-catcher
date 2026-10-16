@@ -9,7 +9,7 @@ vars:
   # Same versions as .github/workflows/build-test.yaml, so `task ci` checks what CI checks.
   PYTHON_VERSION: "3.14-slim" # renovate: python
   PYTHON_VERSION_FLOOR: "3.11-slim"
-  RUFF_VERSION: "0.17.0"
+  RUFF_VERSION: "0.17.1"
   REPOSITORY_NAME: stuttgart-things/homerun2-sound-catcher
   REGISTRY_URL: ttl.sh
   TAG: 1h
