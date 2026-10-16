@@ -53,7 +53,7 @@ cd ~
 git clone https://github.com/stuttgart-things/homerun2-sound-catcher.git
 cd homerun2-sound-catcher
 python3 -m venv .venv
-.venv/bin/pip install ".[tts]"
+.venv/bin/pip install ".[tts,s3]"
 .venv/bin/python -m piper.download_voices --data-dir voices de_DE-thorsten-medium
 ```
 
@@ -90,7 +90,12 @@ journalctl --user -u sound-catcher -f
 systemctl --user enable --now bt-reconnect.timer
 ```
 
-## 6. Tuning
+## 6. Sounds from S3 (optional)
+
+Set `SOUNDS_S3_*` and the read-only keys in `~/.config/sound-catcher.env`
+(see [s3-sounds.md](s3-sounds.md)), then `chmod 600` the file.
+
+## 7. Tuning
 
 - **First syllable cut off?** Raise `PREROLL` (`800ms`, `1s`).
 - **Too loud or too quiet?** Use `volume` per rule in `profile.yaml`, and the
@@ -101,6 +106,6 @@ systemctl --user enable --now bt-reconnect.timer
 ## Updating
 
 ```bash
-cd ~/homerun2-sound-catcher && git pull && .venv/bin/pip install ".[tts]"
+cd ~/homerun2-sound-catcher && git pull && .venv/bin/pip install ".[tts,s3]"
 systemctl --user restart sound-catcher
 ```

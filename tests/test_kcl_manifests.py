@@ -24,6 +24,7 @@ EXPECTED_MANIFESTS = {
     "profile_configmap.profileConfigMap",
     "secret.secretRedis",
     "secret.secretApi",
+    "secret.secretS3",
     "deploy.deployment",
     "service.service",
     "httproute.httproute",
@@ -106,3 +107,32 @@ def test_secrets_only_when_given():
         "homerun2-sound-catcher-api",
         "homerun2-sound-catcher-redis",
     ]
+
+
+def test_s3_sync_off_by_default_and_credentials_from_the_s3_secret():
+    env = env_of(by_kind(render(), "Deployment"))
+    assert env["SOUNDS_S3_BUCKET"] == ""
+    manifests = render(
+        **{
+            "config.s3Bucket": "homerun-sounds",
+            "config.s3Endpoint": "https://minio.example.com",
+            "config.s3AccessKey": "ak",
+            "config.s3SecretKey": "sk",
+        }
+    )
+    deployment = by_kind(manifests, "Deployment")
+    env = env_of(deployment)
+    assert env["SOUNDS_S3_BUCKET"] == "homerun-sounds"
+    assert env["SOUNDS_S3_ENDPOINT"] == "https://minio.example.com"
+    refs = {
+        e["name"]: e["valueFrom"]["secretKeyRef"]
+        for e in deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+        if e["name"].startswith("AWS_")
+    }
+    assert refs["AWS_ACCESS_KEY_ID"] == {"name": "homerun2-sound-catcher-s3", "key": "accessKey", "optional": True}
+    assert "homerun2-sound-catcher-s3" in [m["metadata"]["name"] for m in manifests if m["kind"] == "Secret"]
+
+
+def test_s3_keys_go_together():
+    with pytest.raises(ValueError):
+        render(**{"config.s3AccessKey": "ak"})

@@ -54,7 +54,8 @@ message ─► profile rule ─► mute? quiet hours? repeat? ─► clip + spee
 
    An announcement held back by any of these is still recorded, with the
    reason, and can still be listened to on demand.
-3. **Audio.** The clip comes from `sounds/`. The speech comes from Piper and
+3. **Audio.** The clip comes from the S3 bucket if one is configured
+   (`docs/s3-sounds.md`), otherwise from the bundled `sounds/`. The speech comes from Piper and
    is cached under the hash of voice and text, so repeats cost nothing.
    Without Piper or a voice, rules play their clips only.
 4. **History.** A ring buffer of the last `HISTORY_SIZE` announcements. It is

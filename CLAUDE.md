@@ -40,17 +40,20 @@ Branch-per-issue with PR and merge, as in the sibling repos:
 - `src/sound_catcher/profile/engine.py` — YAML rules, quiet hours, sandboxed Jinja `say`
 - `src/sound_catcher/audio/tts.py` — Piper synthesizer with cache, silence pre-roll
 - `src/sound_catcher/audio/player.py` — local sink: queue, player command
+- `src/sound_catcher/audio/library.py` — sound lookup: S3 cache before the bundled `sounds/`
+- `src/sound_catcher/audio/s3sync.py` — S3 bucket sync (boto3, extra `[s3]`), ETag-based, keeps the cache when S3 is down
 - `src/sound_catcher/web/app.py` — routes, write API, SSE generator
 - `src/sound_catcher/web/static/index.html` — the player page
 - `docs/concept.md` — design and API; `docs/lattepanda.md` — native install
 - `deploy/` — systemd user units, env template, Bluetooth reconnect timer
 - `kcl/` — browser-only Kubernetes deployment (one replica, Recreate); `tests/test_kcl_manifests.py` renders it when `kcl-lib` is installed
 - `docs/kubernetes.md` — cluster deployment, SSE through the gateway
+- `docs/s3-sounds.md` — sounds from S3, authentication, MinIO read-only policy
 
 ## Testing
 
 ```bash
-pip install -e ".[dev,tts]"
+pip install -e ".[dev,tts,s3]"
 task precommit
 task run                     # standalone, browser only, token "dev"
 task say -- "Hallo Büro"

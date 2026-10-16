@@ -10,7 +10,9 @@ import sys
 
 import uvicorn
 
+from sound_catcher.audio.library import SoundLibrary
 from sound_catcher.audio.player import LocalPlayer, detect_player_cmd
+from sound_catcher.audio.s3sync import S3SoundSync, create_s3_client
 from sound_catcher.audio.tts import create_synthesizer, write_silence
 from sound_catcher.config import Config, load_config, setup_logging
 from sound_catcher.consumer import RedisConsumer
@@ -42,6 +44,21 @@ def build_player(cfg: Config) -> LocalPlayer | None:
     return LocalPlayer(cfg.player_cmd or detect_player_cmd(), preroll=preroll)
 
 
+def build_sound_sync(cfg: Config) -> S3SoundSync | None:
+    """The S3 sync, or None without SOUNDS_S3_BUCKET. Raises ValueError when
+    the bucket is set and boto3 is missing."""
+    if not cfg.s3.enabled:
+        return None
+    client = create_s3_client(cfg.s3.endpoint, cfg.s3.region, cfg.s3.anonymous)
+    return S3SoundSync(
+        client,
+        cfg.s3.bucket,
+        cfg.s3.cache_dir or cfg.tts_cache_dir / "s3-sounds",
+        prefix=cfg.s3.prefix,
+        interval=cfg.s3.interval,
+    )
+
+
 def _install_signal_handlers(stop: asyncio.Event) -> None:
     loop = asyncio.get_running_loop()
 
@@ -65,15 +82,22 @@ async def _run(cfg: Config) -> int:
         profile = load_profile(cfg.profile_path, rules_expected=cfg.mode == "full")
         synthesizer = create_synthesizer(cfg.tts_voice, cfg.tts_cache_dir)
         player = build_player(cfg)
+        sound_sync = build_sound_sync(cfg)
     except ValueError as exc:
         logger.error("invalid configuration: %s", exc)
         return 1
 
+    dirs = [("bundled", cfg.sounds_dir)]
+    if sound_sync is not None:
+        # In front of the bundled clips, so an upload can replace one.
+        dirs.insert(0, ("s3", sound_sync.dest))
+        sound_sync.start()
+        logger.info("sounds: syncing %s every %ds", sound_sync.describe(), cfg.s3.interval)
     history = History(cfg.history_size)
     dispatcher = Dispatcher(
         profile,
         history,
-        cfg.sounds_dir,
+        SoundLibrary(dirs),
         synthesizer=synthesizer,
         player=player,
         browser=cfg.browser,
@@ -94,6 +118,9 @@ async def _run(cfg: Config) -> int:
             body["consumer"] = consumer.state
             if consumer.state == "failed":
                 body["status"] = "unhealthy"
+        if sound_sync is not None:
+            # Reported, never unhealthy: the sounds synced last still play.
+            body["s3"] = sound_sync.status.to_json()
         if player is not None:
             body["player"] = "running" if player.alive else "stopped"
             if not player.alive:
@@ -135,6 +162,8 @@ async def _run(cfg: Config) -> int:
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await consumer_task
     dispatcher.close()
+    if sound_sync is not None:
+        sound_sync.close()
     server.should_exit = True
     if not server_task.done():
         await server_task

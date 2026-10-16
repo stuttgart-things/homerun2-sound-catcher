@@ -17,6 +17,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable
 
+from sound_catcher.audio.library import SoundLibrary
 from sound_catcher.audio.player import Job, LocalPlayer
 from sound_catcher.audio.tts import NoSpeech, Synthesizer
 from sound_catcher.history import PLAYED, Announcement, History
@@ -31,7 +32,7 @@ class Dispatcher:
         self,
         profile: Profile,
         history: History,
-        sounds_dir: Path,
+        sounds: SoundLibrary | Path,
         synthesizer: Synthesizer | None = None,
         player: LocalPlayer | None = None,
         browser: bool = True,
@@ -40,7 +41,7 @@ class Dispatcher:
     ) -> None:
         self._profile = profile
         self._history = history
-        self._sounds_dir = sounds_dir
+        self._sounds = SoundLibrary.of(sounds)
         self._tts = synthesizer or NoSpeech()
         self._player = player
         self._browser = browser
@@ -58,6 +59,10 @@ class Dispatcher:
     @property
     def browser(self) -> bool:
         return self._browser
+
+    @property
+    def sounds(self) -> SoundLibrary:
+        return self._sounds
 
     @property
     def speech(self) -> bool:
@@ -169,11 +174,11 @@ class Dispatcher:
     def _audio(self, clip: str, text: str) -> list[Path]:
         files: list[Path] = []
         if clip:
-            path = self._sounds_dir / clip
-            if path.is_file():
+            path = self._sounds.find(clip)
+            if path is not None:
                 files.append(path)
             else:
-                logger.warning("sound %s not found in %s", clip, self._sounds_dir)
+                logger.warning("sound %s not found in %s", clip, self._sounds.describe())
         if text:
             speech = self._tts.synthesize(text)
             if speech is not None:

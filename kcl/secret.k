@@ -1,5 +1,5 @@
 """
-Secrets for homerun2-sound-catcher (Redis password, /play API token)
+Secrets for homerun2-sound-catcher (Redis password, /play API token, S3 credentials)
 """
 
 import base64
@@ -36,3 +36,19 @@ secretApi = {
         token: base64.encode(config.apiToken)
     }
 } if config.apiToken else None
+
+# Secret - S3 credentials for the sound bucket (read-only user)
+secretS3 = {
+    apiVersion: "v1"
+    kind: "Secret"
+    metadata: {
+        name: "{}-s3".format(config.name)
+        namespace: config.namespace
+        labels: labels.commonLabels
+    }
+    type: "Opaque"
+    data: {
+        accessKey: base64.encode(config.s3AccessKey)
+        secretKey: base64.encode(config.s3SecretKey)
+    }
+} if config.s3AccessKey else None
