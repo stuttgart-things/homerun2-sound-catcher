@@ -13,8 +13,9 @@ vars:
   REPOSITORY_NAME: stuttgart-things/homerun2-sound-catcher
   REGISTRY_URL: ttl.sh
   TAG: 1h
-  # A German Piper voice; others: https://huggingface.co/rhasspy/piper-voices
-  VOICE: de_DE-thorsten-medium
+  # The Piper voice `task run` speaks with (the image's default too);
+  # others: https://huggingface.co/rhasspy/piper-voices
+  VOICE: en_US-lessac-medium
   VOICES_DIR: voices
 
 tasks:
@@ -62,7 +63,7 @@ tasks:
       - chmod +x .git/hooks/pre-commit
 
   voice:
-    desc: Download the Piper voice into voices/ (VOICE=… for another one)
+    desc: Download the Piper voice into voices/ (task voice VOICE=de_DE-thorsten-medium for another)
     cmds:
       - mkdir -p {{ .VOICES_DIR }}
       - python -m piper.download_voices --data-dir {{ .VOICES_DIR }} {{ .VOICE }}
@@ -81,7 +82,7 @@ tasks:
       LOG_FORMAT: text
     cmds:
       - |
-        if [ -f "{{ .VOICES_DIR }}/{{ .VOICE }}.onnx" ]; then export TTS_VOICE="{{ .VOICES_DIR }}/{{ .VOICE }}.onnx"; fi
+        if [ -f "{{ .VOICES_DIR }}/{{ .VOICE }}.onnx" ]; then export TTS_VOICE="{{ .VOICE }}" TTS_VOICES_DIR="{{ .VOICES_DIR }}"; fi
         python -m sound_catcher
 
   run-speaker:
@@ -92,11 +93,11 @@ tasks:
       LOG_FORMAT: text
     cmds:
       - |
-        if [ -f "{{ .VOICES_DIR }}/{{ .VOICE }}.onnx" ]; then export TTS_VOICE="{{ .VOICES_DIR }}/{{ .VOICE }}.onnx"; fi
+        if [ -f "{{ .VOICES_DIR }}/{{ .VOICE }}.onnx" ]; then export TTS_VOICE="{{ .VOICE }}" TTS_VOICES_DIR="{{ .VOICES_DIR }}"; fi
         python -m sound_catcher
 
   say:
-    desc: 'Say something through a running catcher, e.g. task say -- "Pizza ist da"'
+    desc: 'Say something through a running catcher, e.g. task say -- "Pizza is here"'
     cmds:
       - |
         curl -sS -X POST localhost:${HEALTH_PORT:-8080}/play \

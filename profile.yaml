@@ -5,8 +5,10 @@
 #   severity: message severities (left out: any)
 #   tags:     every listed tag must be among the message's tags
 #   sound:    a clip in SOUNDS_DIR, played first
-#   say:      spoken text, a Jinja template over title, message, severity,
-#             system, author, tags, url (needs TTS_VOICE)
+#   say:      spoken text, a Jinja template over title, spoken_title (the
+#             title without leading tags like [WARN]), message, severity,
+#             system, author, tags, url (needs TTS_VOICE; the voice speaks the
+#             template's language -- en_US-lessac-medium by default)
 #   volume:   0-100
 #   silent:   true matches and plays nothing (keeps a system off the speaker)
 
@@ -22,19 +24,19 @@ rules:
   critical:
     severity: [critical]
     sound: alarm.wav
-    say: "Kritisch! {{ system }}: {{ title }}"
+    say: "Critical{% if system not in spoken_title %} on {{ system }}{% endif %}: {{ spoken_title }}"
     volume: 100
 
   errors:
     severity: [error]
     sound: chime.wav
-    say: "Fehler auf {{ system }}: {{ title }}"
+    say: "Error{% if system not in spoken_title %} on {{ system }}{% endif %}: {{ spoken_title }}"
     volume: 85
 
   warnings:
     severity: [warning]
     sound: ding.wav
-    say: "Warnung von {{ system }}: {{ title }}"
+    say: "Warning{% if system not in spoken_title %} from {{ system }}{% endif %}: {{ spoken_title }}"
     volume: 70
 
   success:

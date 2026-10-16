@@ -80,7 +80,7 @@ async def _run(cfg: Config) -> int:
 
     try:
         profile = load_profile(cfg.profile_path, rules_expected=cfg.mode == "full")
-        synthesizer = create_synthesizer(cfg.tts_voice, cfg.tts_cache_dir)
+        synthesizer = create_synthesizer(cfg.tts_voice, cfg.tts_cache_dir, cfg.tts_voices_dir)
         player = build_player(cfg)
         sound_sync = build_sound_sync(cfg)
     except ValueError as exc:

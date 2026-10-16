@@ -13,6 +13,7 @@ severities make a sound.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, time
 from pathlib import Path
@@ -29,6 +30,16 @@ logger = logging.getLogger(__name__)
 MAX_SPOKEN_CHARS = 500
 """A rendered announcement is cut here. A message body pasted into `say` should
 not keep the office listening for a minute."""
+
+_TAG_PREFIX = re.compile(r"^\s*(?:\[[^\]\n]{1,24}\]\s*)+")
+
+
+def spoken_title(title: str) -> str:
+    """The title without leading tags like ``[WARN]`` or ``[OK]``: they are for
+    eyes, and a voice reading out "bracket warn" is noise. The severity is
+    in the rule's own words anyway."""
+    return _TAG_PREFIX.sub("", title).strip() or title.strip()
+
 
 _jinja = SandboxedEnvironment(undefined=StrictUndefined, autoescape=False)  # nosec B701 - spoken text, not HTML
 
@@ -64,6 +75,7 @@ class SoundRule:
         try:
             text = _jinja.from_string(self.say).render(
                 title=msg.title,
+                spoken_title=spoken_title(msg.title),
                 message=msg.message,
                 severity=msg.severity,
                 system=msg.system,

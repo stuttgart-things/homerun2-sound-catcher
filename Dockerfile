@@ -10,11 +10,12 @@ COPY src/ src/
 RUN pip install --no-cache-dir ".[tts,s3]" \
     && rm -rf /root/.cache
 
-# The voice is baked in, so a pod speaks without a volume or a download at
-# start. Another one: --build-arg VOICE=de_DE-kerstin-low
-ARG VOICE=de_DE-thorsten-medium
-RUN python -m piper.download_voices --data-dir /app/voices "${VOICE}" \
-    && test -f "/app/voices/${VOICE}.onnx"
+# The voices are baked in, so a pod speaks without a volume or a download at
+# start. TTS_VOICE (below) picks one by name.
+# More: --build-arg VOICES="en_US-lessac-medium de_DE-thorsten-medium en_GB-alan-medium"
+ARG VOICES="en_US-lessac-medium de_DE-thorsten-medium"
+RUN python -m piper.download_voices --data-dir /app/voices ${VOICES} \
+    && for v in ${VOICES}; do test -f "/app/voices/$v.onnx"; done
 
 ARG VERSION=dev
 ARG COMMIT=unknown
@@ -27,7 +28,8 @@ COPY profile.yaml ./
 # In a container there is no speaker: the browser is the sink.
 ENV SOUND_SINKS=browser \
     SOUNDS_DIR=/app/sounds \
-    TTS_VOICE=/app/voices/${VOICE}.onnx \
+    TTS_VOICES_DIR=/app/voices \
+    TTS_VOICE=en_US-lessac-medium \
     TTS_CACHE_DIR=/tmp/sound-catcher
 
 RUN useradd --uid 65532 --no-create-home appuser
