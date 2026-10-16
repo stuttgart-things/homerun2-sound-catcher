@@ -1,0 +1,25 @@
+# systemd *user* unit: PipeWire and the Bluetooth audio route belong to the
+# user session, so the catcher runs as that user, not as root.
+#
+#   cp deploy/sound-catcher.service ~/.config/systemd/user/
+#   cp deploy/sound-catcher.env ~/.config/sound-catcher.env   # then edit it
+#   loginctl enable-linger "$USER"     # start at boot, without a login
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now sound-catcher
+#
+# See docs/lattepanda.md.
+
+[Unit]
+Description=homerun2 sound catcher
+After=network-online.target pipewire.service wireplumber.service
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=%h/.config/sound-catcher.env
+WorkingDirectory=%h/homerun2-sound-catcher
+ExecStart=%h/homerun2-sound-catcher/.venv/bin/sound-catcher
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

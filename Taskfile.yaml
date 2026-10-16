@@ -1,0 +1,132 @@
+---
+version: 3
+vars:
+  DAGGER_MODULE_VERSION: v0.86.0
+  PYTHON_MODULE: github.com/stuttgart-things/dagger/python@{{ .DAGGER_MODULE_VERSION }}
+  # Same versions as .github/workflows/build-test.yaml, so `task ci` checks what CI checks.
+  PYTHON_VERSION: "3.15-slim" # renovate: python
+  PYTHON_VERSION_FLOOR: "3.11-slim"
+  RUFF_VERSION: "0.17.0"
+  # A German Piper voice; others: https://huggingface.co/rhasspy/piper-voices
+  VOICE: de_DE-thorsten-medium
+  VOICES_DIR: voices
+
+tasks:
+
+  ## ──────────────────────────────────────────────
+  ## LOCAL
+  ## ──────────────────────────────────────────────
+
+  install:
+    desc: Install in editable mode with dev and tts dependencies
+    cmds:
+      - pip install -e ".[dev,tts]"
+
+  lint:
+    desc: Run ruff linter
+    cmds:
+      - ruff check src/ tests/
+
+  format:
+    desc: Format code with ruff
+    cmds:
+      - ruff format src/ tests/
+
+  format-check:
+    desc: Check formatting with ruff
+    cmds:
+      - ruff format --check src/ tests/
+
+  test:
+    desc: Run pytest
+    cmds:
+      - pytest tests/ -v
+
+  precommit:
+    desc: lint + format-check + test (what the pre-commit hook runs)
+    cmds:
+      - task: lint
+      - task: format-check
+      - task: test
+
+  setup-precommit:
+    desc: Install the git pre-commit hook
+    cmds:
+      - printf '#!/bin/sh\nexec task precommit\n' > .git/hooks/pre-commit
+      - chmod +x .git/hooks/pre-commit
+
+  voice:
+    desc: Download the Piper voice into voices/ (VOICE=… for another one)
+    cmds:
+      - mkdir -p {{ .VOICES_DIR }}
+      - python -m piper.download_voices --data-dir {{ .VOICES_DIR }} {{ .VOICE }}
+
+  sounds:
+    desc: Regenerate the bundled clips in sounds/
+    cmds:
+      - python hack/make_sounds.py
+
+  run:
+    desc: Run without Redis, browser only, with speech when voices/ has the voice (token "dev")
+    env:
+      SOUND_MODE: standalone
+      SOUND_SINKS: browser
+      SOUND_API_TOKEN: dev
+      LOG_FORMAT: text
+    cmds:
+      - |
+        if [ -f "{{ .VOICES_DIR }}/{{ .VOICE }}.onnx" ]; then export TTS_VOICE="{{ .VOICES_DIR }}/{{ .VOICE }}.onnx"; fi
+        python -m sound_catcher
+
+  run-speaker:
+    desc: Like run, but also on this machine's speaker
+    env:
+      SOUND_MODE: standalone
+      SOUND_API_TOKEN: dev
+      LOG_FORMAT: text
+    cmds:
+      - |
+        if [ -f "{{ .VOICES_DIR }}/{{ .VOICE }}.onnx" ]; then export TTS_VOICE="{{ .VOICES_DIR }}/{{ .VOICE }}.onnx"; fi
+        python -m sound_catcher
+
+  say:
+    desc: 'Say something through a running catcher, e.g. task say -- "Pizza ist da"'
+    cmds:
+      - |
+        curl -sS -X POST localhost:${HEALTH_PORT:-8080}/play \
+          -H "Authorization: Bearer ${SOUND_API_TOKEN:-dev}" -H 'Content-Type: application/json' \
+          -d "$(python3 -c 'import json,sys; print(json.dumps({"sound": "chime.wav", "say": sys.argv[1]}))' "{{ .CLI_ARGS }}")"
+
+  ## ──────────────────────────────────────────────
+  ## CI (Dagger, same as GitHub Actions)
+  ## ──────────────────────────────────────────────
+
+  ci:
+    desc: Full pipeline via Dagger — lint, format-check, tests on both Pythons, bandit
+    cmds:
+      - task: ci-lint
+      - task: ci-format-check
+      - task: ci-test
+      - task: ci-security-scan
+
+  ci-lint:
+    cmds:
+      - dagger call -m {{ .PYTHON_MODULE }} lint --src . --python-version {{ .PYTHON_VERSION }} --ruff-version {{ .RUFF_VERSION }} --progress plain
+
+  ci-format-check:
+    cmds:
+      - dagger call -m {{ .PYTHON_MODULE }} format-check --src . --python-version {{ .PYTHON_VERSION }} --ruff-version {{ .RUFF_VERSION }} --progress plain
+
+  ci-test:
+    cmds:
+      - dagger call -m {{ .PYTHON_MODULE }} test --src . --python-version {{ .PYTHON_VERSION_FLOOR }} --progress plain
+      - dagger call -m {{ .PYTHON_MODULE }} test --src . --python-version {{ .PYTHON_VERSION }} --progress plain
+
+  ci-security-scan:
+    cmds:
+      - dagger call -m {{ .PYTHON_MODULE }} security-scan --src . --progress plain
+
+  ci-integration:
+    desc: Build the image and run it against Redis (dagger/main.go)
+    cmds:
+      - dagger call -m ./dagger build-and-test-binary --src . export --path /tmp/test-output.log

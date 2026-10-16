@@ -1,0 +1,59 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "customManagers": [
+    {
+      "description": "ruff pins outside pyproject.toml: the reusable workflow's ruff-version input, the Taskfile and the Dagger module default (#61)",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/",
+        "/^Taskfile\\.ya?ml$/",
+        "/^dagger/main\\.go$/"
+      ],
+      "matchStrings": [
+        "ruff-version:\\s*[\"']?(?<currentValue>[0-9][^\"'\\s]*)[\"']?",
+        "RUFF_VERSION:\\s*[\"']?(?<currentValue>[0-9][^\"'\\s]*)[\"']?",
+        "\\+default=\"(?<currentValue>[0-9][^\"]*)\"\\s*\\n\\s*ruffVersion\\b"
+      ],
+      "datasourceTemplate": "pypi",
+      "depNameTemplate": "ruff"
+    },
+    {
+      "description": "The highest Python CI and `task ci` test on, which is the image's (#88). Marked `renovate: python`; the 3.11 floor is deliberately unmarked",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/",
+        "/^Taskfile\\.ya?ml$/",
+        "/^dagger/main\\.go$/"
+      ],
+      "matchStrings": [
+        "[\"']?(?<currentValue>3\\.\\d+-slim)[\"']?\\s*#\\s*renovate: python",
+        "//\\s*renovate: python\\s*\\n\\s*//\\s*\\+default=\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "python",
+      "versioningTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Bump the CI pin and the dev-extra pin in one PR, so they cannot drift (#61)",
+      "matchPackageNames": [
+        "ruff"
+      ],
+      "groupName": "ruff"
+    },
+    {
+      "description": "Move the Dockerfile's Python and the CI/Taskfile/Dagger pins together, so the image never runs a version the tests skip (#88)",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "python"
+      ],
+      "groupName": "python"
+    }
+  ]
+}

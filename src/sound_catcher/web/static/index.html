@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>homerun2 sound</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #6b7385; --line: #e3e6ec;
+    --accent: #2f6fed; --accent-text: #ffffff;
+    --error: #d93a3a; --warning: #d98a1a; --success: #2a9d5b; --info: #2f6fed; --debug: #8a8fa0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e7eaf0; --muted: #8e96a8; --line: #2a303c;
+      --accent: #5b8ff9; --accent-text: #0b0e14;
+      --error: #f06464; --warning: #f0a83c; --success: #4cc283; --info: #5b8ff9; --debug: #8a8fa0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
+  h1 { font-size: 20px; margin: 0; flex: 1 1 auto; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--card); }
+  .chip.on { color: var(--success); border-color: var(--success); }
+  .chip.warn { color: var(--warning); border-color: var(--warning); }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; }
+  .bar .spacer { flex: 1; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; }
+  summary { cursor: pointer; color: var(--muted); }
+  details .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
+  input[type=password] { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); min-width: 0; flex: 1 1 180px; }
+  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  li { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--sev, var(--info)); border-radius: 10px; padding: 10px 12px; }
+  li.playing { outline: 2px solid var(--accent); }
+  li.quiet { opacity: .7; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); }
+  .sev { font-weight: 600; color: var(--sev); text-transform: uppercase; }
+  .title { font-weight: 600; margin: 2px 0; overflow-wrap: anywhere; }
+  .spoken { color: var(--muted); font-style: italic; overflow-wrap: anywhere; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .actions button { font-size: 13px; padding: 4px 8px; }
+  .empty { color: var(--muted); text-align: center; padding: 32px 0; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 16px; }
+  .notice { color: var(--warning); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🔊 homerun2 sound</h1>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="bar">
+    <button id="unlock" class="primary">🔊 Ton aktivieren</button>
+    <label id="autoplay-label"><input type="checkbox" id="autoplay" checked> Neue automatisch abspielen</label>
+    <span class="spacer"></span>
+    <button id="reset" title="Verlauf leeren und ab jetzt neu sammeln">Neue Sitzung</button>
+  </div>
+  <p class="notice" id="notice" hidden></p>
+
+  <details id="control" hidden>
+    <summary>Lautsprecher-Steuerung</summary>
+    <div class="row">
+      <input type="password" id="token" placeholder="API-Token" autocomplete="off">
+      <button id="save-token">Übernehmen</button>
+    </div>
+    <div class="row" id="mute-row">
+      <span id="mute-state"></span>
+      <button data-mute="15">15 min stumm</button>
+      <button data-mute="60">1 h stumm</button>
+      <button id="unmute">Stumm aufheben</button>
+    </div>
+  </details>
+
+  <ol id="list"></ol>
+  <p class="empty" id="empty">Noch nichts in dieser Sitzung.</p>
+  <footer>homerun2-sound-catcher {{ version }} · zeigt die Ansagen seit Beginn dieser Sitzung, höchstens <span id="cap">–</span></footer>
+</main>
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch { /* private mode */ } },
+  };
+
+  let state = { sinks: [], speech: false, mutedUntil: null, historySize: 20, writable: false, speakerReplay: false };
+  let entries = [];          // newest first, this session only, capped at historySize
+  let unlocked = false;
+  let playing = null;        // id of the entry playing in this browser
+  const queue = [];          // ids waiting to play in this browser
+  const audio = new Audio();
+  let sessionStart = parseFloat(store.get("sessionStart") || "0");
+
+  // ── playback in the browser ─────────────────────────────
+  // Browsers only play audio after a user gesture; "Ton aktivieren" is that
+  // gesture. A short silent clip proves it worked.
+  $("unlock").onclick = async () => {
+    audio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+    try { await audio.play(); unlocked = true; } catch { unlocked = false; }
+    renderBar();
+  };
+  $("autoplay").onchange = () => store.set("autoplay", $("autoplay").checked ? "1" : "0");
+  if (store.get("autoplay") === "0") $("autoplay").checked = false;
+
+  function enqueue(id) {
+    if (playing === id || queue.includes(id)) return;
+    queue.push(id);
+    if (playing === null) next();
+  }
+
+  async function next() {
+    const id = queue.shift();
+    if (id === undefined) { playing = null; renderList(); return; }
+    const entry = entries.find((e) => e.id === id);
+    if (!entry || !entry.audio.length) { next(); return; }
+    playing = id;
+    renderList();
+    for (const url of entry.audio) {
+      try {
+        audio.src = url;
+        await audio.play();
+        await new Promise((resolve) => { audio.onended = resolve; audio.onerror = resolve; });
+      } catch {
+        unlocked = false; renderBar();
+        break;
+      }
+    }
+    next();
+  }
+
+  // ── speaker control (token) ─────────────────────────────
+  const token = () => store.get("token") || "";
+  $("token").value = token();
+  $("save-token").onclick = () => { store.set("token", $("token").value.trim()); renderList(); renderBar(); };
+
+  async function write(method, path, body) {
+    const res = await fetch(path, {
+      method,
+      headers: { "Authorization": "Bearer " + token(), "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      const msg = res.status === 401 ? "Token falsch" : res.status === 429 ? "Zu viele Anfragen, bitte kurz warten" : "Fehler " + res.status;
+      notice(msg);
+      throw new Error(msg);
+    }
+    notice("");
+    return res.json();
+  }
+  document.querySelectorAll("[data-mute]").forEach((b) => {
+    b.onclick = () => write("PUT", "/mute", { minutes: Number(b.dataset.mute) }).then(refreshState).catch(() => {});
+  });
+  $("unmute").onclick = () => write("DELETE", "/mute").then(refreshState).catch(() => {});
+
+  function notice(text) { $("notice").textContent = text; $("notice").hidden = !text; }
+
+  // ── session and history ─────────────────────────────────
+  async function refreshState() {
+    const res = await fetch("/api/state");
+    const s = await res.json();
+    if (!sessionStart) { sessionStart = s.serverTime; store.set("sessionStart", String(sessionStart)); }
+    applyState(s);
+  }
+
+  function applyState(s) {
+    state = { ...state, ...s };
+    renderBar();
+    renderList();
+  }
+
+  async function loadHistory() {
+    const res = await fetch("/api/history?since=" + encodeURIComponent(sessionStart));
+    entries = (await res.json()).slice(0, state.historySize);
+    renderList();
+  }
+
+  $("reset").onclick = async () => {
+    const res = await fetch("/api/state");
+    sessionStart = (await res.json()).serverTime;
+    store.set("sessionStart", String(sessionStart));
+    entries = []; queue.length = 0;
+    renderList();
+  };
+
+  function onAnnouncement(entry) {
+    if (entry.at < sessionStart || entries.some((e) => e.id === entry.id)) return;
+    entries.unshift(entry);
+    entries = entries.slice(0, state.historySize);
+    renderList();
+    if (entry.autoplay && unlocked && $("autoplay").checked) enqueue(entry.id);
+  }
+
+  function connect() {
+    const source = new EventSource("/api/events");
+    source.addEventListener("state", (ev) => applyState(JSON.parse(ev.data)));
+    source.addEventListener("announcement", (ev) => onAnnouncement(JSON.parse(ev.data)));
+    // EventSource reconnects by itself. What came in meanwhile is fetched
+    // once it is back, but not played: it is no longer news.
+    source.onopen = () => loadHistory();
+  }
+
+  // ── rendering ───────────────────────────────────────────
+  function chip(text, cls) {
+    const el = document.createElement("span");
+    el.className = "chip " + (cls || "");
+    el.textContent = text;
+    return el;
+  }
+
+  function renderBar() {
+    const chips = $("chips");
+    chips.replaceChildren(
+      chip("Lautsprecher", state.sinks.includes("local") ? "on" : ""),
+      chip("Browser", state.sinks.includes("browser") ? "on" : ""),
+      chip(state.speech ? "Sprache" : "nur Clips", state.speech ? "on" : ""),
+    );
+    const muted = state.mutedUntil ? new Date(state.mutedUntil) : null;
+    if (muted) chips.append(chip("stumm bis " + muted.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), "warn"));
+    $("unlock").hidden = unlocked;
+    $("autoplay-label").hidden = !state.sinks.includes("browser");
+    $("control").hidden = !state.writable;
+    $("mute-state").textContent = muted ? "Stumm bis " + muted.toLocaleTimeString() : "Nicht stumm";
+    $("cap").textContent = state.historySize;
+  }
+
+  function fmtTime(epoch) {
+    return new Date(epoch * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  function renderList() {
+    const list = $("list");
+    $("empty").hidden = entries.length > 0;
+    list.replaceChildren(...entries.map((e) => {
+      const li = document.createElement("li");
+      li.style.setProperty("--sev", `var(--${["error", "critical"].includes(e.severity) ? "error" : ["warning", "success", "debug"].includes(e.severity) ? e.severity : "info"})`);
+      if (e.id === playing) li.classList.add("playing");
+      if (e.outcome !== "played") li.classList.add("quiet");
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const sev = document.createElement("span");
+      sev.className = "sev";
+      sev.textContent = e.severity;
+      const bits = [fmtTime(e.at), e.system, e.outcomeText];
+      if (e.origin === "replay") bits.push("erneut abgespielt");
+      if (e.origin === "api") bits.push("über API");
+      meta.append(sev, ...bits.map((t) => { const s = document.createElement("span"); s.textContent = t; return s; }));
+
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = e.title || "(ohne Titel)";
+      li.append(meta, title);
+
+      if (e.text) {
+        const spoken = document.createElement("div");
+        spoken.className = "spoken";
+        spoken.textContent = "„" + e.text + "“";
+        li.append(spoken);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const listen = document.createElement("button");
+      listen.textContent = e.id === playing ? "⏵ läuft …" : "▶ Im Browser anhören";
+      listen.disabled = !e.audio.length || e.id === playing;
+      listen.onclick = async () => { if (!unlocked) await $("unlock").onclick(); enqueue(e.id); };
+      actions.append(listen);
+      if (state.speakerReplay && token()) {
+        const speaker = document.createElement("button");
+        speaker.textContent = "🔊 Auf Lautsprecher";
+        speaker.disabled = !e.audio.length;
+        speaker.onclick = () => write("POST", `/api/history/${e.id}/replay`).catch(() => {});
+        actions.append(speaker);
+      }
+      li.append(actions);
+      return li;
+    }));
+  }
+
+  refreshState().then(connect);
+})();
+</script>
+</body>
+</html>

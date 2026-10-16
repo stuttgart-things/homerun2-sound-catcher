@@ -1,0 +1,48 @@
+# homerun2-sound-catcher profile
+#
+# Rules are tried top to bottom; the first that fits a message wins.
+#   systems:  message systems ("*" or left out: any)
+#   severity: message severities (left out: any)
+#   tags:     every listed tag must be among the message's tags
+#   sound:    a clip in SOUNDS_DIR, played first
+#   say:      spoken text, a Jinja template over title, message, severity,
+#             system, author, tags, url (needs TTS_VOICE)
+#   volume:   0-100
+#   silent:   true matches and plays nothing (keeps a system off the speaker)
+
+# Outside office hours only critical messages make a sound.
+quietHours:
+  from: "18:00"
+  to: "08:00"
+  weekends: true
+  timezone: Europe/Berlin
+  allow: [critical]
+
+rules:
+  critical:
+    severity: [critical]
+    sound: alarm.wav
+    say: "Kritisch! {{ system }}: {{ title }}"
+    volume: 100
+
+  errors:
+    severity: [error]
+    sound: chime.wav
+    say: "Fehler auf {{ system }}: {{ title }}"
+    volume: 85
+
+  warnings:
+    severity: [warning]
+    sound: ding.wav
+    say: "Warnung von {{ system }}: {{ title }}"
+    volume: 70
+
+  success:
+    severity: [success]
+    sound: success.wav
+    volume: 60
+
+  # info and debug stay quiet; they still show up in the history.
+  quiet:
+    severity: [info, debug]
+    silent: true

@@ -1,0 +1,39 @@
+---
+name: Build & Test
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-validation:
+    # Both ends of what actually runs: the floor is requires-python (and what
+    # Debian Bookworm ships), the top is the container image. The top entry
+    # follows the Dockerfile through Renovate.
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11-slim"
+          - "3.15-slim" # renovate: python
+    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-python-validation.yaml@main
+    with:
+      runs-on: dagger-labda
+      module-name: homerun2-sound-catcher
+      python-version: ${{ matrix.python-version }}
+      # Keep equal to the ruff pin in pyproject.toml [project.optional-dependencies].dev
+      ruff-version: "0.17.0"
+      environment-name: k8s
+      accept-linterrors: false
+      accept-failedtests: false
+    secrets: inherit

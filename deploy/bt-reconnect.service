@@ -1,0 +1,10 @@
+# Reconnects the Bluetooth speaker when it went to sleep or out of range.
+# Runs from bt-reconnect.timer; set SPEAKER_MAC in ~/.config/sound-catcher.env.
+
+[Unit]
+Description=Reconnect the Bluetooth speaker
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/sound-catcher.env
+ExecStart=/bin/sh -c 'bluetoothctl info "$SPEAKER_MAC" | grep -q "Connected: yes" || bluetoothctl connect "$SPEAKER_MAC"'

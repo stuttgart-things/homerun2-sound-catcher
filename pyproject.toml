@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "homerun2-sound-catcher"
+version = "0.1.0"
+description = "Sound catcher for homerun2 — consumes Redis Streams messages and plays them as clips and spoken announcements, on a local speaker and in the browser"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [
+    { name = "stuttgart-things" },
+]
+keywords = ["homerun2", "tts", "piper", "redis-streams", "bluetooth-speaker"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "redis>=5.2",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "sse-starlette>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    # Pinned exactly, and kept equal to ruff-version in
+    # .github/workflows/build-test.yaml, as in led-catcher.
+    "ruff==0.17.0",
+    "httpx>=0.28",
+]
+# Speech. Without it, rules play their clips and skip `say`.
+tts = [
+    "piper-tts>=1.3",
+]
+
+[project.scripts]
+sound-catcher = "sound_catcher.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sound_catcher = ["web/static/*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
