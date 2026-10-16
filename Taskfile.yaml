@@ -3,10 +3,16 @@ version: 3
 vars:
   DAGGER_MODULE_VERSION: v0.86.0
   PYTHON_MODULE: github.com/stuttgart-things/dagger/python@{{ .DAGGER_MODULE_VERSION }}
+  DOCKER_MODULE: github.com/stuttgart-things/dagger/docker@{{ .DAGGER_MODULE_VERSION }}
+  TRIVY_MODULE: github.com/stuttgart-things/dagger/trivy@{{ .DAGGER_MODULE_VERSION }}
+  KCL_MODULE: github.com/stuttgart-things/dagger/kcl@{{ .DAGGER_MODULE_VERSION }}
   # Same versions as .github/workflows/build-test.yaml, so `task ci` checks what CI checks.
   PYTHON_VERSION: "3.14-slim" # renovate: python
   PYTHON_VERSION_FLOOR: "3.11-slim"
   RUFF_VERSION: "0.17.0"
+  REPOSITORY_NAME: stuttgart-things/homerun2-sound-catcher
+  REGISTRY_URL: ttl.sh
+  TAG: 1h
   # A German Piper voice; others: https://huggingface.co/rhasspy/piper-voices
   VOICE: de_DE-thorsten-medium
   VOICES_DIR: voices
@@ -130,3 +136,69 @@ tasks:
     desc: Build the image and run it against Redis (dagger/main.go)
     cmds:
       - dagger call -m ./dagger build-and-test-binary --src . export --path /tmp/test-output.log
+
+  ## ──────────────────────────────────────────────
+  ## PR: build → push ttl.sh → trivy scan (as in led-catcher)
+  ## ──────────────────────────────────────────────
+
+  ci-pr:
+    desc: Full PR pipeline — validate, build, push to ttl.sh, scan
+    cmds:
+      - task: ci
+      - task: ci-docker-push
+      - task: ci-trivy-scan
+
+  ci-docker-build:
+    desc: Build the image via Dagger (downloads the Piper voice)
+    cmds:
+      - dagger call -m {{ .DOCKER_MODULE }} build --src . --progress plain
+
+  ci-docker-push:
+    desc: Build and push the image to ttl.sh
+    cmds:
+      - |
+        dagger call -m {{ .DOCKER_MODULE }} \
+        build --src . \
+        push \
+        --repository-name {{ .REPOSITORY_NAME }} \
+        --registry-url {{ .REGISTRY_URL }} \
+        --tag {{ .TAG }} \
+        --progress plain
+
+  ci-trivy-scan:
+    desc: Trivy scan of the image on ttl.sh
+    cmds:
+      - |
+        dagger call -m {{ .TRIVY_MODULE }} \
+        scan-image \
+        --image-ref {{ .REGISTRY_URL }}/{{ .REPOSITORY_NAME }}:{{ .TAG }} \
+        --progress plain \
+        export --path /tmp/trivy-report.json
+        echo "Report: /tmp/trivy-report.json"
+
+  ## ──────────────────────────────────────────────
+  ## KCL (Kubernetes, browser sink)
+  ## ──────────────────────────────────────────────
+
+  kcl-render:
+    desc: Render the KCL manifests with the deploy profile
+    cmds:
+      - kcl run kcl/main.k -Y tests/kcl-deploy-profile.yaml
+
+  ci-push-kustomize:
+    desc: Render KCL and push the kustomize base as OCI artifact (ttl.sh)
+    cmds:
+      - |
+        dagger call -m {{ .KCL_MODULE }} \
+        push-kustomize-base \
+        --source ./kcl \
+        --parameters-file ./tests/kcl-deploy-profile.yaml \
+        --address {{ .REGISTRY_URL }}/{{ .REPOSITORY_NAME }}-kustomize \
+        --tag {{ .TAG }} \
+        --progress plain
+
+  ci-release:
+    desc: Full release locally — validate, image, scan, kustomize OCI
+    cmds:
+      - task: ci-pr
+      - task: ci-push-kustomize

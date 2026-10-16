@@ -1,0 +1,56 @@
+---
+name: Build, Push & Scan Container Image
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: dagger-labda
+    environment: k8s
+    outputs:
+      image-ref: ${{ steps.push.outputs.image-ref }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push image to GHCR
+        id: push
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}"
+          SHA_TAG="pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}"
+          NUM_TAG="pr-${{ github.event.number }}"
+          docker build \
+            --build-arg VERSION=${SHA_TAG} \
+            --build-arg COMMIT=${{ github.event.pull_request.head.sha }} \
+            --build-arg DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t ${IMAGE}:${SHA_TAG} \
+            -t ${IMAGE}:${NUM_TAG} \
+            .
+          docker push ${IMAGE}:${SHA_TAG}
+          docker push ${IMAGE}:${NUM_TAG}
+          echo "image-ref=${IMAGE}:${SHA_TAG}" >> "$GITHUB_OUTPUT"
+
+  trivy-scan:
+    if: github.event_name == 'pull_request'
+    needs: build-pr
+    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-dagger-trivy-image-scan.yaml@main
+    with:
+      runs-on: dagger-labda
+      image-ref: ${{ needs.build-pr.outputs.image-ref }}
+      continue-on-error: true
+    secrets: inherit # pragma: allowlist secret
