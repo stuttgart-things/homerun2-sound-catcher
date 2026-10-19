@@ -14,6 +14,7 @@ _consumerGroup = option("config.consumerGroup")
 _redisPassword = option("config.redisPassword")
 _apiToken = option("config.apiToken")
 _healthPort = option("config.healthPort")
+_basePath = option("config.basePath")
 _soundMode = option("config.soundMode")
 _historySize = option("config.historySize")
 _httpRouteEnabled = option("config.httpRouteEnabled")
@@ -52,6 +53,8 @@ config: schema.SoundCatcher = schema.SoundCatcher {
         apiToken = _apiToken
     if _healthPort:
         healthPort = _healthPort
+    if _basePath:
+        basePath = _basePath
     if _soundMode:
         soundMode = _soundMode
     if _historySize:

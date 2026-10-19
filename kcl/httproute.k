@@ -43,7 +43,7 @@ httproute = {
                         {
                             path: {
                                 type: "PathPrefix"
-                                value: "/api/events"
+                                value: "{}/api/events".format(config.basePath)
                             }
                         }
                     ]
@@ -62,7 +62,7 @@ httproute = {
                     {
                         path: {
                             type: "PathPrefix"
-                            value: "/"
+                            value: config.basePath if config.basePath else "/"
                         }
                     }
                 ]

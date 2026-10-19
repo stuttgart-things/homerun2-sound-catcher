@@ -48,7 +48,9 @@ class Announcement:
     def audible(self) -> bool:
         return self.outcome == PLAYED and bool(self.files)
 
-    def to_json(self) -> dict:
+    def to_json(self, base_path: str = "") -> dict:
+        """The entry as the page and the API see it. ``base_path`` (``BASE_PATH``)
+        prefixes the audio URLs, which the browser fetches as they are."""
         return {
             "id": self.id,
             "at": self.at,
@@ -67,7 +69,7 @@ class Announcement:
             "sinks": self.sinks,
             # Paths the browser may fetch, in play order. Present for a quiet
             # announcement too, so it can still be listened to on demand.
-            "audio": [f"/audio/{self.id}/{n}" for n in range(len(self.files))],
+            "audio": [f"{base_path}/audio/{self.id}/{n}" for n in range(len(self.files))],
             # Whether open player pages play it on arrival.
             "autoplay": "browser" in self.sinks,
         }
