@@ -20,7 +20,7 @@ from importlib import resources
 from typing import AsyncIterator, Awaitable, Callable, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sse_starlette.sse import EventSourceResponse
@@ -103,7 +103,14 @@ def create_app(
     health: Callable[[], dict] | None = None,
     stop: asyncio.Event | None = None,
     clock: Callable[[], float] = time.monotonic,
+    base_path: str = "",
 ) -> FastAPI:
+    """The player app. With ``base_path`` (``BASE_PATH``, e.g. ``/sound``) it
+    answers under that prefix, the way homerun2-portal forwards it: the path
+    arrives unchanged. The page, its API calls, the SSE stream and the audio
+    URLs all carry the prefix; ``/health`` and ``/healthz`` stay at the root
+    for the probes and the portal's status check, and ``/`` leads to the page.
+    """
     app = FastAPI(title="homerun2-sound-catcher", version=version, docs_url=None, redoc_url=None)
     speaker = "local" in dispatcher.sinks
 
@@ -123,7 +130,8 @@ def create_app(
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def index() -> HTMLResponse:
         page = resources.files("sound_catcher.web").joinpath("static/index.html").read_text()
-        for key, value in (("version", version), ("commit", commit[:7]), ("date", date)):
+        fields = (("base_path", base_path), ("version", version), ("commit", commit[:7]), ("date", date))
+        for key, value in fields:
             page = page.replace("{{ " + key + " }}", html.escape(value))
         return HTMLResponse(page, headers={"Cache-Control": "no-cache"})
 
@@ -138,11 +146,12 @@ def create_app(
         since: float = Query(default=0.0, description="Epoch seconds; the page passes its session start."),
         after: int = Query(default=0, ge=0, description="Only ids above this one."),
     ) -> list[dict]:
-        return [e.to_json() for e in history.since(since, after)]
+        return [e.to_json(base_path) for e in history.since(since, after)]
 
     @app.get("/api/events", tags=["player"], summary="SSE: new announcements and state changes")
     async def events(request: Request) -> EventSourceResponse:
-        return EventSourceResponse(event_stream(history, request.is_disconnected, state, stop=stop), ping=10)
+        stream = event_stream(history, request.is_disconnected, state, stop=stop, base_path=base_path)
+        return EventSourceResponse(stream, ping=10)
 
     @app.get("/api/sounds", tags=["player"], summary="The sounds rules and POST /play can name, and their source")
     async def get_sounds() -> dict:
@@ -158,24 +167,42 @@ def create_app(
         path = entry.files[part]
         return FileResponse(path, media_type=MEDIA_TYPES.get(path.suffix.lower(), "application/octet-stream"))
 
-    @app.get("/healthz", include_in_schema=False)
-    @app.get("/health", include_in_schema=False)
     async def healthz() -> JSONResponse:
         body = {"status": "ok", "time": datetime.now(timezone.utc).isoformat(), "version": version}
         body.update({"commit": commit, "date": date})
         body.update(health() if health else {})
         return JSONResponse(body, status_code=503 if body["status"] != "ok" else 200)
 
+    app.get("/healthz", include_in_schema=False)(healthz)
+    app.get("/health", include_in_schema=False)(healthz)
+
     @app.get("/mute", tags=["control"], summary="Whether the catcher is muted, and until when")
     async def get_mute() -> dict:
         return {"mutedUntil": _iso(dispatcher.muted_until)}
 
     if api.writable:
-        app.include_router(_write_router(dispatcher, api, speaker, clock))
-    return app
+        app.include_router(_write_router(dispatcher, api, speaker, clock, base_path))
+    return _mount(app, base_path, healthz)
 
 
-def _write_router(dispatcher: Dispatcher, api: ApiConfig, speaker: bool, clock) -> APIRouter:
+def _mount(app: FastAPI, base_path: str, healthz: Callable[[], Awaitable[JSONResponse]]) -> FastAPI:
+    """Serve ``app`` under ``base_path``, unchanged when it is empty."""
+    if not base_path:
+        return app
+    root = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    root.get("/healthz", include_in_schema=False)(healthz)
+    root.get("/health", include_in_schema=False)(healthz)
+
+    @root.get("/", include_in_schema=False)
+    @root.get(base_path, include_in_schema=False)
+    async def to_page() -> RedirectResponse:
+        return RedirectResponse(f"{base_path}/")
+
+    root.mount(base_path, app)
+    return root
+
+
+def _write_router(dispatcher: Dispatcher, api: ApiConfig, speaker: bool, clock, base_path: str) -> APIRouter:
     """The endpoints that make noise or change state. Token and rate limit,
     shared across callers: the speaker is one object in one room."""
     router = APIRouter(
@@ -217,7 +244,7 @@ def _write_router(dispatcher: Dispatcher, api: ApiConfig, speaker: bool, clock) 
             title=req.title,
             force=req.force,
         )
-        return entry.to_json()
+        return entry.to_json(base_path)
 
     if speaker:
 
@@ -231,7 +258,7 @@ def _write_router(dispatcher: Dispatcher, api: ApiConfig, speaker: bool, clock) 
             entry = await asyncio.to_thread(dispatcher.replay, entry_id)
             if entry is None:
                 raise HTTPException(status_code=404, detail=f"announcement {entry_id} is no longer in the history")
-            return entry.to_json()
+            return entry.to_json(base_path)
 
     @router.put("/mute", tags=["control"], summary="Mute for a number of minutes", dependencies=[Depends(authorize)])
     async def put_mute(req: MuteRequest) -> dict:
@@ -251,6 +278,7 @@ async def event_stream(
     state: Callable[[], dict],
     interval: float = 0.25,
     stop: asyncio.Event | None = None,
+    base_path: str = "",
 ) -> AsyncIterator[dict]:
     """Yield SSE events until the client goes away or ``stop`` is set.
 
@@ -272,7 +300,7 @@ async def event_stream(
         # Oldest first, and last_id taken from what was sent, so an entry
         # recorded while this runs is picked up next round, not skipped.
         for entry in reversed(history.since(0, last_id)):
-            yield {"event": "announcement", "data": json.dumps(entry.to_json())}
+            yield {"event": "announcement", "data": json.dumps(entry.to_json(base_path))}
             last_id = max(last_id, entry.id)
         if stop is None:
             await asyncio.sleep(interval)

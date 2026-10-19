@@ -25,6 +25,8 @@ restart is the fastest way to get the speaker unplugged."""
 SOUND_MODES = ("full", "standalone")
 """`standalone` runs without Redis; only POST /play makes a sound."""
 
+_BASE_PATH_SEGMENT = re.compile(r"[A-Za-z0-9._~-]+")
+
 SINKS = ("local", "browser")
 """Where audio goes: `local` plays on this machine's audio output (the office
 speaker), `browser` sends it to every open player page."""
@@ -89,6 +91,7 @@ class Config:
     max_message_age: float = DEFAULT_MAX_MESSAGE_AGE
     redis_startup_timeout: float = DEFAULT_REDIS_STARTUP_TIMEOUT
     health_port: int = 8080
+    base_path: str = ""  # e.g. /sound behind homerun2-portal; empty serves at the root
     profile_path: str = "profile.yaml"
     sounds_dir: Path = REPO_ROOT / "sounds"
     tts_voice: str = ""  # a Piper voice: name in tts_voices_dir, or a path; empty: no speech
@@ -239,6 +242,22 @@ def parse_duration(value: str) -> float:
     return sign * total
 
 
+def parse_base_path(raw: str) -> str:
+    """``BASE_PATH``: the URL prefix the player page is served under, e.g. ``/sound``.
+
+    Normalised to a leading slash and no trailing one; empty or ``/`` means
+    the root. It is written into the page's JavaScript and the audio URLs, so
+    it is held to plain path segments rather than escaped at every use.
+    """
+    value = raw.strip().strip("/")
+    if not value:
+        return ""
+    for segment in value.split("/"):
+        if not _BASE_PATH_SEGMENT.fullmatch(segment) or segment in (".", ".."):
+            raise ValueError(f"BASE_PATH {raw!r}: segments may only contain letters, digits and . _ ~ -")
+    return "/" + value
+
+
 def load_config() -> Config:
     timeout = _env_duration("REDIS_STARTUP_TIMEOUT", DEFAULT_REDIS_STARTUP_TIMEOUT)
     if timeout <= 0:
@@ -266,6 +285,7 @@ def load_config() -> Config:
         max_message_age=_env_duration("MAX_MESSAGE_AGE", DEFAULT_MAX_MESSAGE_AGE),
         redis_startup_timeout=timeout,
         health_port=_env_int("HEALTH_PORT", 8080, minimum=1, maximum=65535),
+        base_path=parse_base_path(_getenv("BASE_PATH")),
         profile_path=_getenv("PROFILE_PATH", "profile.yaml"),
         sounds_dir=Path(sounds_dir) if sounds_dir else REPO_ROOT / "sounds",
         tts_voice=_getenv("TTS_VOICE").strip(),

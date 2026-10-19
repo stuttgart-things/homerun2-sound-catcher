@@ -42,6 +42,10 @@ schema SoundCatcher:
     # Health endpoint
     healthPort: int | str = "8080"
 
+    # URL prefix of the player page (BASE_PATH), e.g. "/sound" behind
+    # homerun2-portal. Also the HTTPRoute's path prefix. Empty serves at "/".
+    basePath: str = ""
+
     # Service
     serviceType: str = "ClusterIP"
     servicePort: int = 80

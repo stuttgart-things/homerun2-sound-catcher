@@ -245,6 +245,9 @@
 <script>
 (() => {
   "use strict";
+  // URL prefix behind homerun2-portal (BASE_PATH), "" at the root. The audio
+  // URLs in the history entries carry it already.
+  const BASE_PATH = "{{ base_path }}";
   const $ = (id) => document.getElementById(id);
   const store = {
     get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
@@ -302,7 +305,7 @@
   $("save-token").onclick = () => { store.set("token", $("token").value.trim()); renderList(); renderBar(); };
 
   async function write(method, path, body) {
-    const res = await fetch(path, {
+    const res = await fetch(BASE_PATH + path, {
       method,
       headers: { "Authorization": "Bearer " + token(), "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
@@ -324,7 +327,7 @@
 
   // ── session and history ─────────────────────────────────
   async function refreshState() {
-    const res = await fetch("/api/state");
+    const res = await fetch(BASE_PATH + "/api/state");
     const s = await res.json();
     if (!sessionStart) { sessionStart = s.serverTime; store.set("sessionStart", String(sessionStart)); }
     applyState(s);
@@ -337,13 +340,13 @@
   }
 
   async function loadHistory() {
-    const res = await fetch("/api/history?since=" + encodeURIComponent(sessionStart));
+    const res = await fetch(BASE_PATH + "/api/history?since=" + encodeURIComponent(sessionStart));
     entries = (await res.json()).slice(0, state.historySize);
     renderList();
   }
 
   $("reset").onclick = async () => {
-    const res = await fetch("/api/state");
+    const res = await fetch(BASE_PATH + "/api/state");
     sessionStart = (await res.json()).serverTime;
     store.set("sessionStart", String(sessionStart));
     entries = []; queue.length = 0;
@@ -369,7 +372,7 @@
   let connectedOnce = false;
 
   function connect() {
-    const source = new EventSource("/api/events");
+    const source = new EventSource(BASE_PATH + "/api/events");
     source.addEventListener("state", (ev) => applyState(JSON.parse(ev.data)));
     source.addEventListener("announcement", (ev) => onAnnouncement(JSON.parse(ev.data)));
     // EventSource reconnects by itself; each (re)connect reloads the list.
@@ -377,7 +380,7 @@
       const seen = new Set(entries.map((e) => e.id));
       await loadHistory();
       if (connectedOnce) {
-        const now = (await (await fetch("/api/state")).json()).serverTime;
+        const now = (await (await fetch(BASE_PATH + "/api/state")).json()).serverTime;
         entries
           .filter((e) => !seen.has(e.id) && now - e.at < CATCH_UP_SECONDS)
           .reverse()

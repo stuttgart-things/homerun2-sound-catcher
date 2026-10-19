@@ -28,7 +28,8 @@ kcl run kcl/main.k -Y tests/kcl-deploy-profile.yaml \
 | `config.historySize` | `20` | Announcements the page shows |
 | `config.apiToken` | – | Creates the `-api` Secret; enables `/play` and mute. Without it they do not exist |
 | `config.httpRouteEnabled`, `…ParentRefName`, `…Hostname` | off | Gateway API route |
-| `config.httpRouteSseTimeout` | – | Request timeout for `/api/events`, e.g. `0s` (none) |
+| `config.httpRouteSseTimeout` | – | Request timeout for `<basePath>/api/events`, e.g. `0s` (none) |
+| `config.basePath` | – | `BASE_PATH`, e.g. `/sound` behind homerun2-portal; also the route's path prefix |
 | `config.s3Bucket`, `…Endpoint`, `…Prefix`, `…Interval` | off | Sounds from S3 ([s3-sounds.md](s3-sounds.md)) |
 | `config.s3AccessKey`, `config.s3SecretKey` | – | Create the `-s3` Secret. Leave them out when External Secrets provides it |
 | `config.profileData` | the default rules | `profile.yaml`, mounted from a ConfigMap |

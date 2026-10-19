@@ -80,6 +80,7 @@ available.
 | `SOUND_API_MAX_TEXT` | `300` | Longest `say` accepted by `/play` |
 | `SOUND_API_RATE_LIMIT` | `30` | Writes per minute, across all callers |
 | `HEALTH_PORT` | `8080` | Web server port |
+| `BASE_PATH` | *(empty)* | URL prefix of the player page, e.g. `/sound` behind homerun2-portal. Page, API, SSE and audio answer only under it; `/` redirects there, `/health` and `/healthz` stay at the root. Plain path segments only; an invalid value fails startup |
 | `LOG_FORMAT` / `LOG_LEVEL` | `json` / `info` | Logging |
 
 ## Development

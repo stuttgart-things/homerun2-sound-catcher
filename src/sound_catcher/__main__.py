@@ -137,10 +137,11 @@ async def _run(cfg: Config) -> int:
         date=cfg.date,
         health=health,
         stop=stop,
+        base_path=cfg.base_path,
     )
     server = _Server(uvicorn.Config(app, host="0.0.0.0", port=cfg.health_port, log_level="warning"))  # nosec B104
     server_task = asyncio.create_task(server.serve())
-    logger.info("player page on port %d", cfg.health_port)
+    logger.info("player page on port %d under %s/", cfg.health_port, cfg.base_path)
 
     waits = {asyncio.create_task(stop.wait()), server_task}
     consumer_task = asyncio.create_task(consumer.run()) if consumer is not None else None
