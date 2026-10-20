@@ -4,29 +4,54 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HOMERUN² SOUND CATCHER</title>
+<script>
+  // In homerun2-portal's iframe the portal shows the brand and the service
+  // name: hr-embedded switches to the compact header. Set before the first
+  // paint, so the big banner never flashes.
+  if (window.self !== window.top) document.documentElement.classList.add('hr-embedded');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+  /* The homerun2 design tokens: a copy of homerun2-portal's
+     static/homerun2-tokens.css for running without the portal. Behind it the
+     page also links the portal's file (after this block), and its :root wins
+     over this zero-specificity copy. */
+  :where(:root) {
+    --hr-bg: #0b1120;
+    --hr-surface: #111827;
+    --hr-card: #1e293b;
+    --hr-border: #334155;
+    --hr-text: #e2e8f0;
+    --hr-muted: #94a3b8;
+    --hr-accent: #6366f1;
+    --hr-accent-2: #a855f7;
+    --hr-accent-3: #f97316;
+    --hr-ok: #22c55e;
+    --hr-info: #38bdf8;
+    --hr-warning: #eab308;
+    --hr-error: #ef4444;
+  }
+
   /* The homerun2 look (core-catcher, led-catcher): navy, an indigo-to-purple
      header with an orange rule, pixel type for the name. */
   :root {
     color-scheme: dark;
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --text-primary: #e2e8f0;
-    --text-secondary: #94a3b8;
+    --bg-primary: var(--hr-bg);
+    --bg-secondary: var(--hr-card);
+    --bg-tertiary: var(--hr-border);
+    --text-primary: var(--hr-text);
+    --text-secondary: var(--hr-muted);
     --text-muted: #64748b;
-    --accent-indigo: #6366f1;
-    --accent-purple: #8b5cf6;
-    --accent-violet: #a855f7;
-    --accent-orange: #f97316;
+    --accent-indigo: var(--hr-accent);
+    --accent-purple: var(--hr-accent-2);
+    --accent-orange: var(--hr-accent-3);
     --accent-amber: #fbbf24;
-    --accent-link: #818cf8;
-    --severity-error: #ff4444;
-    --severity-warning: #f97316;
-    --severity-success: #4ade80;
-    --severity-info: #60a5fa;
+    --accent-link: color-mix(in srgb, var(--hr-accent), white 25%);
+    --severity-error: var(--hr-error);
+    --severity-warning: var(--hr-warning);
+    --severity-success: var(--hr-ok);
+    --severity-info: var(--hr-info);
     --severity-debug: #64748b;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,7 +67,7 @@
 
   /* Header */
   .header-bar {
-    background: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-purple) 50%, var(--accent-violet) 100%);
+    background: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-purple) 100%);
     padding: 1.8rem 1.5rem;
     border-bottom: 3px solid var(--accent-orange);
     display: flex;
@@ -76,7 +101,38 @@
     font-size: 0.75rem;
   }
   .badge.off { color: rgba(248,250,252,0.55); }
-  .badge.warn { background: rgba(249,115,22,0.35); }
+  .badge.warn { background: color-mix(in srgb, var(--accent-orange) 35%, transparent); }
+
+  /* The compact header inside homerun2-portal (README there, "Embedded
+     header"): one line on the portal's surface, no brand, the subtitle on the
+     left and the badges on the right. */
+  .hr-embedded .header-bar {
+    font-family: var(--hr-font, system-ui, sans-serif);
+    background: var(--hr-surface);
+    border-bottom: 1px solid var(--hr-border);
+    min-height: 44px;
+    padding: 6px 16px;
+    align-items: center;
+  }
+  .hr-embedded .header-bar h1,
+  .hr-embedded .header-service { display: none; }
+  .hr-embedded .header-bar .subtitle {
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--hr-muted);
+    margin: 0;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+  .hr-embedded .badge {
+    background: transparent;
+    border: 1px solid var(--hr-border);
+    padding: 3px 8px;
+    font-size: 12px;
+    color: var(--hr-text);
+  }
+  .hr-embedded .badge.off { color: var(--hr-muted); }
+  .hr-embedded .badge.warn { border-color: var(--hr-warning); color: var(--hr-warning); }
 
   main { flex: 1; padding: 1rem 1.5rem; }
 
@@ -93,7 +149,7 @@
     padding: 0.45rem 0.8rem;
     cursor: pointer;
   }
-  button:hover:not(:disabled) { border-color: var(--accent-indigo); background: rgba(99,102,241,0.15); }
+  button:hover:not(:disabled) { border-color: var(--accent-indigo); background: color-mix(in srgb, var(--accent-indigo) 15%, transparent); }
   button:disabled { opacity: 0.4; cursor: default; }
   button.primary { background: var(--accent-indigo); border-color: var(--accent-indigo); color: #fff; }
   button.primary:hover { background: var(--accent-purple); }
@@ -135,8 +191,8 @@
     white-space: nowrap;
   }
   tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--bg-secondary); vertical-align: top; }
-  tbody tr:hover { background: rgba(99,102,241,0.08); }
-  tbody tr.playing { background: rgba(99,102,241,0.2); }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent-indigo) 8%, transparent); }
+  tbody tr.playing { background: color-mix(in srgb, var(--accent-indigo) 20%, transparent); }
   tbody tr.quiet td.title-cell, tbody tr.quiet td.status { color: var(--text-secondary); }
   td.time { white-space: nowrap; color: var(--text-secondary); }
   td.sev { font-weight: bold; text-transform: uppercase; color: var(--sev); white-space: nowrap; }
@@ -185,12 +241,13 @@
   ::-webkit-scrollbar-track { background: var(--bg-primary); }
   ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
 </style>
+{{ portal_theme }}
 </head>
 <body>
 <div class="header-bar">
   <div>
     <h1>HOMERUN²</h1>
-    <div class="subtitle">sound catcher · player</div>
+    <div class="subtitle"><span class="header-service">sound catcher · </span>Announcement player</div>
   </div>
   <div class="badges" id="badges"></div>
 </div>

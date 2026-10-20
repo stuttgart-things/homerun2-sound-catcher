@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 
 from sound_catcher.config.settings import ApiConfig, load_config, parse_base_path
 from sound_catcher.models import Message
-from sound_catcher.web.app import create_app
+from sound_catcher.web.app import PORTAL_TOKENS_LINK, create_app
 
 AUTH = {"Authorization": "Bearer s3cret"}
 
@@ -89,6 +89,29 @@ def test_page_points_every_url_at_the_base_path(client):
     assert 'new EventSource(BASE_PATH + "/api/events")' in page
     assert "fetch(BASE_PATH + path," in page
     assert not _unprefixed(page)
+
+
+def test_behind_the_portal_the_page_links_the_portal_tokens(client):
+    """The one root URL the page hands out on purpose: the portal's own tokens file."""
+    c, _ = client
+    alone = c.get("/sound/").text
+    behind = c.get("/sound/", headers={"X-Forwarded-Prefix": "/sound"}).text
+    assert "{{ portal_theme }}" not in alone
+    assert PORTAL_TOKENS_LINK not in alone
+    assert behind.count(PORTAL_TOKENS_LINK) == 1
+    assert behind.index(PORTAL_TOKENS_LINK) > behind.index("</style>")
+    assert _unprefixed(behind) == ["/static/homerun2-tokens.css"]
+
+
+def test_the_page_switches_to_the_compact_header_inside_the_portal(client):
+    """In the portal's iframe a script sets hr-embedded before the first paint; the CSS keys on it."""
+    c, _ = client
+    page = c.get("/sound/").text
+    head = page.split("</head>")[0]
+    assert "window.self !== window.top" in head
+    assert head.index("classList.add('hr-embedded')") < head.index("<style>")
+    assert ".hr-embedded .header-bar {" in head
+    assert '<span class="header-service">' in page
 
 
 def test_without_a_base_path_the_page_is_unchanged(make_dispatcher):

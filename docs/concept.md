@@ -87,6 +87,15 @@ message ─► profile rule ─► mute? quiet hours? repeat? ─► clip + spee
   `--autoplay-policy=no-user-gesture-required`.
 - Mute for 15 min or 1 h, and unmute, with the token.
 
+The page's colours are the homerun2 design tokens (`--hr-*`). It carries a
+copy of them; when a request comes through homerun2-portal (it sets
+`X-Forwarded-Prefix`), the page also links the portal's
+`/static/homerun2-tokens.css`, so a palette change in the portal reaches the
+player too. Inside the portal's iframe the page switches to the compact header
+the portal README describes ("Embedded header"): one line with "Announcement
+player" on the left and the sinks, speech and mute badges on the right, no
+HOMERUN² banner. Opened on its own it keeps the banner.
+
 Limits worth knowing:
 
 - Phones pause background tabs and locked screens. A phone in a pocket is not
