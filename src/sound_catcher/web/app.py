@@ -88,6 +88,21 @@ class RateLimiter:
             return 0.0
 
 
+# homerun2-portal serves the shared design tokens on its own origin; it sets
+# X-Forwarded-Prefix on everything it proxies.
+PORTAL_TOKENS_LINK = '<link rel="stylesheet" href="/static/homerun2-tokens.css">'
+
+
+def _portal_theme(request: Request) -> str:
+    """The portal's design tokens when the page came through the portal.
+
+    The page keeps its own copy of the tokens, so on its own it looks the
+    same; behind the portal the portal's file wins, and a palette change there
+    reaches this page too. The one root URL the page hands out on purpose.
+    """
+    return PORTAL_TOKENS_LINK if request.headers.get("x-forwarded-prefix") else ""
+
+
 def _iso(epoch: float) -> str | None:
     return datetime.fromtimestamp(epoch, timezone.utc).isoformat() if epoch else None
 
@@ -128,8 +143,9 @@ def create_app(
     # ── read side: no token ───────────────────────────────
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-    async def index() -> HTMLResponse:
+    async def index(request: Request) -> HTMLResponse:
         page = resources.files("sound_catcher.web").joinpath("static/index.html").read_text()
+        page = page.replace("{{ portal_theme }}", _portal_theme(request))
         fields = (("base_path", base_path), ("version", version), ("commit", commit[:7]), ("date", date))
         for key, value in fields:
             page = page.replace("{{ " + key + " }}", html.escape(value))
