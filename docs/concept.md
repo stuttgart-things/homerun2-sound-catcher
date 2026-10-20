@@ -96,6 +96,17 @@ the portal README describes ("Embedded header"): one line with "Announcement
 player" on the left and the sinks, speech and mute badges on the right, no
 HOMERUN² banner. Opened on its own it keeps the banner.
 
+The portal's overview gets a piece of the service as well:
+`{BASE_PATH}/ui/manifest.json` lists the fragment
+`{BASE_PATH}/ui/fragment/announcements` ("Latest announcements"), which the
+portal loads into the Sound Catcher card every 5 seconds. It shows the newest
+8 entries of the history (time, severity, system, title and what became of
+it: played, muted, quiet hours, repeat, ...), "Muted until HH:MM" while muted,
+and a link to the player. It reads the same `HISTORY_SIZE` ring buffer as the
+page, so in `SOUND_MODE=standalone` it lists what `POST /play` produced. Bare
+HTML on the portal's `hr-*` classes; the contract is in the homerun2-portal
+README ("Fragments").
+
 Limits worth knowing:
 
 - Phones pause background tabs and locked screens. A phone in a pocket is not
@@ -114,6 +125,7 @@ Limits worth knowing:
 | `GET /api/history?since=&after=` | – | Announcements, newest first |
 | `GET /api/events` | – | SSE: `state`, `announcement` |
 | `GET /audio/{id}/{n}` | – | Audio of an announcement, by id (never by path) |
+| `GET /ui/manifest.json`, `GET /ui/fragment/announcements` | – | homerun2-portal fragment: latest announcements, mute state |
 | `POST /play` | ✓ | `{"say": "...", "sound": "chime.wav", "volume": 80, "force": false}` |
 | `POST /api/history/{id}/replay` | ✓ | Replay on the speaker (local sink only) |
 | `GET /mute`, `PUT /mute`, `DELETE /mute` | `PUT`/`DELETE` ✓ | Mute for `{"minutes": n}` |

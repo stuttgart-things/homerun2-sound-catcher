@@ -29,6 +29,7 @@ from sound_catcher.config.settings import ApiConfig
 from sound_catcher.dispatcher import Dispatcher
 from sound_catcher.history import History
 from sound_catcher.profile.engine import is_bare_name
+from sound_catcher.web.fragments import create_fragments_router
 
 MAX_MUTE_MINUTES = 12 * 60
 MEDIA_TYPES = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".flac": "audio/flac"}
@@ -195,6 +196,9 @@ def create_app(
     @app.get("/mute", tags=["control"], summary="Whether the catcher is muted, and until when")
     async def get_mute() -> dict:
         return {"mutedUntil": _iso(dispatcher.muted_until)}
+
+    # homerun2-portal composes these into its overview (web/fragments.py).
+    app.include_router(create_fragments_router(history, lambda: dispatcher.muted_until, version, base_path))
 
     if api.writable:
         app.include_router(_write_router(dispatcher, api, speaker, clock, base_path))

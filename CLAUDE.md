@@ -43,6 +43,7 @@ Branch-per-issue with PR and merge, as in the sibling repos:
 - `src/sound_catcher/audio/library.py` — sound lookup: S3 cache before the bundled `sounds/`
 - `src/sound_catcher/audio/s3sync.py` — S3 bucket sync (boto3, extra `[s3]`), ETag-based, keeps the cache when S3 is down
 - `src/sound_catcher/web/app.py` — routes, write API, SSE generator
+- `src/sound_catcher/web/fragments.py` — `/ui/manifest.json` and `/ui/fragment/announcements` for homerun2-portal: the newest history entries and the mute state, bare HTML on the portal's `hr-*` classes, every URL under `BASE_PATH`
 - `src/sound_catcher/web/static/index.html` — the player page; colours on the homerun2 `--hr-*` tokens (a `:where(:root)` copy, the portal's `/static/homerun2-tokens.css` linked when `X-Forwarded-Prefix` is set), compact header under `html.hr-embedded` in the portal's iframe
 - `docs/concept.md` — design and API; `docs/lattepanda.md` — native install
 - `deploy/` — systemd user units, env template, Bluetooth reconnect timer
