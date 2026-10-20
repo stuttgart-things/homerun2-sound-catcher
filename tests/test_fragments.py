@@ -127,3 +127,9 @@ def test_severity_maps_onto_the_portal_classes(severity, css):
 def test_replay_is_labelled():
     page = render_announcements_fragment([Announcement(title="x", origin="replay")])
     assert '<span class="hr-muted">replayed</span>' in page
+
+
+def test_outcome_stays_on_one_line():
+    # The portal's row is a flex line: a plain space lets "quiet hours" wrap.
+    page = render_announcements_fragment([Announcement(title="x", outcome="quiet_hours")])
+    assert '<span class="hr-muted">quiet&nbsp;hours</span>' in page

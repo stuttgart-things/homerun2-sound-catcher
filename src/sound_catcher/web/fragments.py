@@ -97,7 +97,9 @@ def _render_item(e: Announcement) -> str:
         f'<span class="hr-sev hr-sev-{severity}">{html.escape(e.severity.upper() or "INFO")}</span>'
         f'<span class="hr-system">{html.escape(e.system)}</span>'
         f'<span class="hr-title">{html.escape(e.title)}</span>'
-        f'<span class="hr-muted">{html.escape(outcome)}</span>'
+        # Non-breaking spaces keep "quiet hours" on one line: the fragment has
+        # only the portal's classes, and the title's ellipsis gives way instead.
+        f'<span class="hr-muted">{html.escape(outcome).replace(" ", "&nbsp;")}</span>'
         "</li>"
     )
 
