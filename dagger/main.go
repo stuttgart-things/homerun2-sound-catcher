@@ -19,7 +19,7 @@ func (m *Dagger) Lint(
 	ctx context.Context,
 	src *dagger.Directory,
 	// +optional
-	// +default="0.17.1"
+	// +default="0.17.2"
 	ruffVersion string,
 ) (string, error) {
 	return dag.Python().Lint(ctx, src, dagger.PythonLintOpts{
