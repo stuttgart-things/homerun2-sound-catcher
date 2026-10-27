@@ -32,7 +32,7 @@ jobs:
       module-name: homerun2-sound-catcher
       python-version: ${{ matrix.python-version }}
       # Keep equal to the ruff pin in pyproject.toml [project.optional-dependencies].dev
-      ruff-version: "0.17.1"
+      ruff-version: "0.17.3"
       environment-name: k8s
       accept-linterrors: false
       accept-failedtests: false
