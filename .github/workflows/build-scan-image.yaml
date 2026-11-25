@@ -48,7 +48,7 @@ jobs:
   trivy-scan:
     if: github.event_name == 'pull_request'
     needs: build-pr
-    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-dagger-trivy-image-scan.yaml@main
+    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-dagger-trivy-image-scan.yaml@15bb803fd72658fda50120f8a566d5594061e6ee # v1.2.0
     with:
       runs-on: dagger-labda
       image-ref: ${{ needs.build-pr.outputs.image-ref }}

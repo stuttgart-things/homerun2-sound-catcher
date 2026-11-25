@@ -26,7 +26,7 @@ jobs:
         python-version:
           - "3.11-slim"
           - "3.14-slim" # renovate: python
-    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-python-validation.yaml@main
+    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-python-validation.yaml@15bb803fd72658fda50120f8a566d5594061e6ee # v1.2.0
     with:
       runs-on: dagger-labda
       module-name: homerun2-sound-catcher
