@@ -112,3 +112,10 @@ def test_default_profile_speaks_english_without_repeating_the_system():
     assert profile.match(warn).render(warn) == "Warning: k8s-cluster disk usage above 80%"
     err = Message(system="nas01", severity="error", title="backup failed")
     assert profile.match(err).render(err) == "Error on nas01: backup failed"
+
+
+def test_ambient_is_off_unless_set():
+    profile = parse_profile(
+        {"rules": {"radio": {"systems": ["radio"], "say": "{{ title }}", "ambient": True}, "rest": {"silent": True}}}
+    )
+    assert [r.ambient for r in profile.rules] == [True, False]

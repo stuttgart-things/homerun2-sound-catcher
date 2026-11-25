@@ -42,6 +42,7 @@ message ─► profile rule ─► mute? quiet hours? repeat? ─► clip + spee
 1. **Rule.** `profile.yaml` maps system, severity and tags to a clip
    (`sound`), a spoken Jinja template (`say`), a volume, or `silent`. Rules
    are tried in order and the first match wins, as in the other catchers.
+   `ambient: true` makes it programme rather than news (see *Ambient* below).
 2. **Should it make a sound now?**
    - *Mute*: `PUT /mute`, for meetings. It ends by itself.
    - *Quiet hours*: from the profile. Only the `allow` severities sound
@@ -68,6 +69,27 @@ message ─► profile rule ─► mute? quiet hours? repeat? ─► clip + spee
      (5 deep) drops the rest instead of reading for ten minutes.
    - `browser` pushes each announcement over SSE to every open player page,
      which plays it.
+
+### Ambient: programme between notifications
+
+A rule with `ambient: true` (the radio's time check, homerun2-radio-pitcher
+via the `ambient` stream) is programme, and gives way, as on the
+led-catcher (homerun2-led-catcher#161):
+
+- **Only on an idle sink.** The speaker takes it only when nothing plays and
+  nothing waits; otherwise it is dropped. When no sink took it, the history
+  says `dropped (busy)`. A player page decides the same for itself.
+- **Cut off by anything else.** Any other announcement stops a playing
+  ambient one (the player process is terminated, the page pauses it) and
+  plays at once; the rest of the programme is not played, and an ambient one
+  still waiting is skipped. The history says `cut off` (the speaker's view).
+- **Never a queue slot taken from news**: an ambient job only enters an empty
+  queue.
+- **Not synthesized when held back** by mute, quiet hours or a repeat: a
+  twice-hourly time check is not worth the cache and the CPU. A notification
+  held back keeps its audio, to be listened to later.
+
+Quiet hours need nothing extra: the radio's cards are `info`.
 
 ## The player page (browser sink)
 

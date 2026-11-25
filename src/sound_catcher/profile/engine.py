@@ -59,6 +59,9 @@ class SoundRule:
     say: str = ""  # a Jinja template over the message fields
     volume: int = 100
     silent: bool = False
+    # Programme, not news (the radio's `ambient` stream): plays only on an idle
+    # speaker and gives way to any other announcement.
+    ambient: bool = False
 
     def matches(self, msg: Message) -> bool:
         if self.systems and msg.system not in self.systems and "*" not in self.systems:
@@ -157,6 +160,7 @@ def parse_profile(data: dict) -> Profile:
             say=str(raw.get("say", "")),
             volume=int(raw.get("volume", 100)),
             silent=bool(raw.get("silent", False)),
+            ambient=bool(raw.get("ambient", False)),
         )
         if rule.sound and not is_bare_name(rule.sound):
             raise ValueError(f"rule {name}: sound must be a file name in SOUNDS_DIR, not a path")

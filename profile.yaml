@@ -11,6 +11,8 @@
 #             template's language -- en_US-lessac-medium by default)
 #   volume:   0-100
 #   silent:   true matches and plays nothing (keeps a system off the speaker)
+#   ambient:  true: programme, not news (the radio's time check) -- plays only
+#             on an idle speaker, any other announcement cuts it off
 
 # Outside office hours only critical messages make a sound.
 quietHours:
