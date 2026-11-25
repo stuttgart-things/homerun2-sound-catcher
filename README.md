@@ -45,6 +45,27 @@ rules:
     silent: true
 ```
 
+`ambient: true` marks a rule's announcements as programme, not news, like the
+led-catcher's ambient rules: the radio's spoken time check
+([homerun2-radio-pitcher](https://github.com/stuttgart-things/homerun2-radio-pitcher),
+stream `ambient`). On the speaker and on every player page it plays only while
+nothing else plays or waits (otherwise `dropped (busy)`), and any other
+announcement stops it at once (`cut off`) and plays. Held back by mute, quiet
+hours or a repeat, it is not synthesized at all.
+
+```yaml
+  radio-spoken:            # above `quiet`: the first match wins
+    systems: [radio]
+    severity: [info]
+    tags: [speak=true]
+    say: "{{ title }}, {{ message }}."
+    volume: 40
+    ambient: true
+  radio:
+    systems: [radio]
+    silent: true
+```
+
 See [profile.yaml](profile.yaml) for the bundled default. The clips in
 `sounds/` are generated from sine tones by `hack/make_sounds.py`, so there are
 no licence questions. Your own `.wav`, `.mp3`, `.ogg` or `.flac` files go in

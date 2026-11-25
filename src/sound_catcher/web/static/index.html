@@ -315,6 +315,8 @@
   let entries = [];          // newest first, this session only, capped at historySize
   let unlocked = false;
   let playing = null;        // id of the entry playing in this browser
+  let playingAmbient = false; // it is programme (rule `ambient`): any other entry cuts it off
+  let cut = false;           // set to stop the entry playing now
   const queue = [];          // ids waiting to play in this browser
   const audio = new Audio();
   let sessionStart = parseFloat(store.get("sessionStart") || "0");
@@ -342,18 +344,37 @@
     const entry = entries.find((e) => e.id === id);
     if (!entry || !entry.audio.length) { next(); return; }
     playing = id;
+    playingAmbient = !!entry.ambient;
+    cut = false;
     renderList();
     for (const url of entry.audio) {
+      if (cut) break;
       try {
         audio.src = url;
         await audio.play();
         await new Promise((resolve) => { audio.onended = resolve; audio.onerror = resolve; });
       } catch {
+        if (cut) break;  // play() rejects when a cut pauses it before it starts
         unlocked = false; renderBar();
         break;
       }
     }
     next();
+  }
+
+  // Programme (an `ambient` rule, e.g. the radio's time check) gives way:
+  // it is skipped while anything plays or waits, and any other announcement
+  // stops it and drops programme still waiting.
+  function cutAmbient() {
+    for (let i = queue.length - 1; i >= 0; i--) {
+      const waiting = entries.find((e) => e.id === queue[i]);
+      if (waiting && waiting.ambient) queue.splice(i, 1);
+    }
+    if (playing !== null && playingAmbient && !cut) {
+      cut = true;
+      audio.pause();
+      if (audio.onended) audio.onended();
+    }
   }
 
   // ── speaker control (token) ─────────────────────────────
@@ -419,7 +440,13 @@
   }
 
   function maybeAutoplay(entry) {
-    if (entry.autoplay && unlocked && $("autoplay").checked) enqueue(entry.id);
+    if (!(entry.autoplay && unlocked && $("autoplay").checked)) return;
+    if (entry.ambient) {
+      if (playing === null && !queue.length) enqueue(entry.id);
+      return;
+    }
+    cutAmbient();
+    enqueue(entry.id);
   }
 
   // What arrived while the stream was down still plays if it is this fresh.
@@ -507,7 +534,7 @@
       const actions = el("td", "actions");
       const listen = el("button", "", e.id === playing ? "⏵ playing…" : "▶ Listen");
       listen.disabled = !e.audio.length || e.id === playing;
-      listen.onclick = async () => { if (!unlocked) await $("unlock").onclick(); enqueue(e.id); };
+      listen.onclick = async () => { if (!unlocked) await $("unlock").onclick(); if (!e.ambient) cutAmbient(); enqueue(e.id); };
       actions.append(listen);
       if (state.speakerReplay && token()) {
         const speaker = el("button", "", "🔊 Speaker");

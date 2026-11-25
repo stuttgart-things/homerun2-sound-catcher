@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import wave
 from pathlib import Path
 
@@ -80,29 +81,124 @@ def test_detect_player_prefers_mpv():
     assert detect_player_cmd(lambda n: None) == ""
 
 
+class FakeProc:
+    """A player process. `block` keeps it running until terminated."""
+
+    def __init__(self, argv, block: threading.Event | None = None) -> None:
+        self.argv = argv
+        self._done = threading.Event()
+        self.terminated = False
+        if block is None:
+            self._done.set()
+
+    def wait(self, timeout=None):
+        self._done.wait(timeout)
+        return 0
+
+    def terminate(self):
+        self.terminated = True
+        self._done.set()
+
+    def kill(self):
+        self._done.set()
+
+
+class Spawner:
+    """Records every argv; files named in `blocking` keep playing until cut off."""
+
+    def __init__(self, blocking: tuple[str, ...] = (), fail: tuple[str, ...] = ()) -> None:
+        self.argvs: list[list[str]] = []
+        self.procs: list[FakeProc] = []
+        self.blocking = blocking
+        self.fail = fail
+        self.started = threading.Event()
+
+    def __call__(self, argv, **kw):
+        self.argvs.append(argv)
+        if argv[1] in self.fail:
+            raise OSError("no device")
+        proc = FakeProc(argv, threading.Event() if argv[1] in self.blocking else None)
+        self.procs.append(proc)
+        if argv[1] in self.blocking:
+            self.started.set()
+        return proc
+
+    @property
+    def files(self) -> list[str]:
+        return [a[1] for a in self.argvs]
+
+
 def test_player_plays_preroll_then_files_in_order():
-    runs = []
-    player = LocalPlayer("play {file} {volume}", preroll=Path("pre.wav"), run=lambda argv, **kw: runs.append(argv))
+    spawn = Spawner()
+    player = LocalPlayer("play {file} {volume}", preroll=Path("pre.wav"), spawn=spawn)
     player.play(Job(files=[Path("a.wav"), Path("b.wav")], volume=40))
     player.wait_idle()
-    assert runs == [["play", "pre.wav", "40"], ["play", "a.wav", "40"], ["play", "b.wav", "40"]]
+    assert spawn.argvs == [["play", "pre.wav", "40"], ["play", "a.wav", "40"], ["play", "b.wav", "40"]]
     player.close()
 
 
 def test_player_survives_a_failing_command():
-    runs = []
-
-    def run(argv, **kw):
-        runs.append(argv[1])
-        if argv[1] == "bad.wav":
-            raise OSError("no device")
-
-    player = LocalPlayer("play {file}", run=run)
+    spawn = Spawner(fail=("bad.wav",))
+    player = LocalPlayer("play {file}", spawn=spawn)
     player.play(Job(files=[Path("bad.wav")]))
     player.play(Job(files=[Path("good.wav")]))
     player.wait_idle()
-    assert runs == ["bad.wav", "good.wav"]
+    assert spawn.files == ["bad.wav", "good.wav"]
     assert player.alive
+
+
+def test_ambient_is_dropped_while_the_speaker_is_busy():
+    spawn = Spawner(blocking=("news.wav",))
+    player = LocalPlayer("play {file}", spawn=spawn)
+    assert player.play(Job(files=[Path("news.wav")]))
+    assert spawn.started.wait(2)
+    assert not player.play(Job(files=[Path("radio.wav")], ambient=True))
+    spawn.procs[0].terminate()  # the notification ends
+    player.wait_idle()
+    assert spawn.files == ["news.wav"]
+
+
+def test_any_notification_cuts_off_ambient_and_plays_at_once():
+    spawn = Spawner(blocking=("radio1.wav",))
+    cut = []
+    player = LocalPlayer("play {file}", spawn=spawn)
+    assert player.play(Job(files=[Path("radio1.wav"), Path("radio2.wav")], ambient=True, on_cut=lambda: cut.append(1)))
+    assert spawn.started.wait(2)
+    assert player.play(Job(files=[Path("news.wav")]))
+    player.wait_idle()
+    assert spawn.procs[0].terminated
+    assert spawn.files == ["radio1.wav", "news.wav"]  # the rest of the programme is not played
+    assert cut == [1]
+
+
+def test_ambient_still_waiting_is_skipped_for_a_notification():
+    # The race play() cannot rule out: an ambient job queued on an idle
+    # speaker that the player thread has not started yet when news arrives.
+    spawn = Spawner(blocking=("hold.wav",))
+    skipped = []
+    player = LocalPlayer("play {file}", spawn=spawn)
+    assert player.play(Job(files=[Path("hold.wav")]))
+    assert spawn.started.wait(2)
+    ambient = Job(files=[Path("radio.wav")], ambient=True, on_cut=lambda: skipped.append(1))
+    ambient.news_seen = player._news  # as play() records it on an idle speaker
+    player._queue.put_nowait(ambient)
+    assert player.play(Job(files=[Path("news.wav")]))
+    spawn.procs[0].terminate()
+    player.wait_idle()
+    assert spawn.files == ["hold.wav", "news.wav"]
+    assert skipped == [1]
+
+
+def test_a_notification_never_cuts_off_a_notification():
+    spawn = Spawner(blocking=("first.wav",))
+    player = LocalPlayer("play {file}", spawn=spawn)
+    assert player.play(Job(files=[Path("first.wav")]))
+    assert spawn.started.wait(2)
+    assert player.play(Job(files=[Path("second.wav")]))
+    assert not spawn.procs[0].terminated
+    spawn.procs[0].terminate()
+    player.wait_idle()
+    assert spawn.files == ["first.wav", "second.wav"]
 
 
 def test_player_requires_a_command():

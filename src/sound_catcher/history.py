@@ -23,6 +23,8 @@ OUTCOMES = {
     "muted": "muted",
     "duplicate": "repeat",
     "nothing": "nothing to play",
+    "dropped_busy": "dropped (busy)",
+    "cut_off": "cut off",
 }
 
 
@@ -40,6 +42,7 @@ class Announcement:
     outcome: str = PLAYED
     origin: str = "stream"  # stream, api, replay
     replay_of: int = 0
+    ambient: bool = False  # programme: gives way to any other announcement
     sinks: list[str] = field(default_factory=list)  # where it was sent
     at: float = field(default_factory=time.time)
     id: int = 0  # assigned by History.record
@@ -66,6 +69,9 @@ class Announcement:
             "outcomeText": OUTCOMES.get(self.outcome, self.outcome),
             "origin": self.origin,
             "replayOf": self.replay_of,
+            # Programme: a player page plays it only when idle, and stops it
+            # for any other announcement.
+            "ambient": self.ambient,
             "sinks": self.sinks,
             # Paths the browser may fetch, in play order. Present for a quiet
             # announcement too, so it can still be listened to on demand.

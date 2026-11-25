@@ -103,6 +103,7 @@ class Dispatcher:
         entry.volume = rule.volume
         entry.text = rule.render(msg)
         entry.clip = rule.sound
+        entry.ambient = rule.ambient
         if rule.silent:
             entry.outcome = "silent"
             return self._finish(entry)
@@ -114,8 +115,10 @@ class Dispatcher:
             entry.outcome = "quiet_hours"
         elif self._is_repeat(entry):
             entry.outcome = "duplicate"
-        # Quiet ones get their audio too, so they can be listened to later.
-        entry.files = self._audio(entry.clip, entry.text)
+        # Quiet ones get their audio too, so they can be listened to later --
+        # except programme: a time check held back is not worth a synthesis.
+        if entry.outcome == PLAYED or not entry.ambient:
+            entry.files = self._audio(entry.clip, entry.text)
         if entry.outcome == PLAYED and not entry.files:
             entry.outcome = "nothing"
         return self._finish(entry)
@@ -204,9 +207,18 @@ class Dispatcher:
             if self._browser and browser:
                 entry.sinks.append("browser")
             if self._player is not None and self._player.play(
-                Job(files=list(entry.files), volume=entry.volume, label=entry.title)
+                Job(
+                    files=list(entry.files),
+                    volume=entry.volume,
+                    label=entry.title,
+                    ambient=entry.ambient,
+                    on_cut=lambda: self._cut_off(entry),
+                )
             ):
                 entry.sinks.append("local")
+            if entry.ambient and not entry.sinks:
+                # Programme on a busy speaker and no page to play it: gone.
+                entry.outcome = "dropped_busy"
         self._history.record(entry)
         logger.info(
             "announcement %s: %s / %s",
@@ -216,6 +228,14 @@ class Dispatcher:
             extra={"system": entry.system, "severity": entry.severity, "title": entry.title, "outcome": entry.outcome},
         )
         return entry
+
+    @staticmethod
+    def _cut_off(entry: Announcement) -> None:
+        """The speaker stopped (or skipped) this programme for a notification."""
+        entry.outcome = "cut_off"
+        logger.info(
+            "ambient announcement cut off: %s", entry.title, extra={"system": entry.system, "title": entry.title}
+        )
 
     def close(self) -> None:
         self._executor.shutdown(wait=False, cancel_futures=True)

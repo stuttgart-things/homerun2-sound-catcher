@@ -125,3 +125,77 @@ def test_submit_runs_on_the_worker(make_dispatcher):
     entry = d.submit(CaughtMessage(message=msg())).result(timeout=5)
     assert history.get(entry.id) is entry
     d.close()
+
+
+RADIO = {
+    "rules": {
+        "radio-spoken": {
+            "systems": ["radio"],
+            "severity": ["info"],
+            "tags": ["speak=true"],
+            "say": "{{ title }}, {{ message }}.",
+            "volume": 40,
+            "ambient": True,
+        },
+        "radio": {"systems": ["radio"], "silent": True},
+        "errors": {"severity": ["error"], "say": "Error: {{ title }}"},
+    }
+}
+
+
+def radio(**kw) -> Message:
+    return Message(
+        **{
+            "system": "radio",
+            "severity": "INFO",
+            "title": "It's 11:30",
+            "message": "Wednesday, 25 November 2026",
+            "tags": "segment=time-check,speak=true",
+            **kw,
+        }
+    )
+
+
+def test_ambient_rule_marks_the_job_and_the_entry(make_dispatcher):
+    player = FakePlayer()
+    d, _ = make_dispatcher(profile=RADIO, player=player)
+    entry = d.handle_message(radio())
+    assert entry.outcome == "played"
+    assert entry.text == "It's 11:30, Wednesday, 25 November 2026."
+    assert player.jobs[0].ambient is True and player.jobs[0].volume == 40
+    assert entry.to_json()["ambient"] is True
+    news = d.handle_message(msg())
+    assert player.jobs[1].ambient is False
+    assert news.to_json()["ambient"] is False
+
+
+def test_ambient_refused_by_a_busy_speaker(make_dispatcher):
+    # Speaker only: nothing else will play it.
+    d, _ = make_dispatcher(profile=RADIO, player=FakePlayer(accept=False), browser=False)
+    entry = d.handle_message(radio())
+    assert entry.outcome == "dropped_busy"
+    assert entry.sinks == []
+    assert entry.to_json()["outcomeText"] == "dropped (busy)"
+    # With player pages open, the pages decide for themselves.
+    d2, _ = make_dispatcher(profile=RADIO, player=FakePlayer(accept=False), browser=True)
+    entry = d2.handle_message(radio())
+    assert entry.outcome == "played" and entry.sinks == ["browser"]
+
+
+def test_cut_off_ambient_is_recorded(make_dispatcher):
+    player = FakePlayer()
+    d, history = make_dispatcher(profile=RADIO, player=player)
+    entry = d.handle_message(radio())
+    player.jobs[0].on_cut()  # what the speaker does when news cuts in
+    assert history.get(entry.id).outcome == "cut_off"
+
+
+def test_ambient_held_back_is_not_synthesized(make_dispatcher):
+    d, _ = make_dispatcher(profile=RADIO)
+    d._profile.quiet_hours = QuietHours(start=time(0, 0), end=time(23, 59, 59), allow=["critical"])
+    entry = d.handle_message(radio())
+    assert entry.outcome == "quiet_hours"
+    assert entry.files == []
+    # A notification held back keeps its audio, to be listened to later.
+    held = d.handle_message(msg())
+    assert held.outcome == "quiet_hours" and held.files
